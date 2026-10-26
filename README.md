@@ -9,3 +9,6 @@ excerpts so readers can check each overlap.
 
 The numbers come from an automatic analysis of the audio and may contain errors. They measure moments of overlapping
 speech, not intentions or conduct. Contact: sideprojectsbc@gmail.com
+
+
+check it here: https://sideprojectsbc.github.io/semifrio-analysis-public/ 
