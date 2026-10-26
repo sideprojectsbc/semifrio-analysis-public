@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Semifrio</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- All visible sentences live in i18n.js (Portuguese and English); data-i18n="key" is filled from there. -->
+  <header class="top">
+    <div class="wrap">
+      <img class="logo" src="assets/theme/semifrio_logo.png" alt="Semifrio">
+      <div>
+        <div class="kicker" data-i18n="kicker"></div>
+        <h1 data-i18n="h1"></h1>
+        <div class="sub" data-i18n="sub"></div>
+        <div class="tag" data-i18n="disclaimerShort"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Shown until app.js has started. If it stays visible, something went wrong. -->
+  <div id="boot" class="wrap" style="padding-top:18px">
+    <p id="boot-msg" data-i18n="booting"></p>
+    <div class="warn" id="boot-help" hidden></div>
+  </div>
+
+  <div class="controls">
+    <div class="wrap">
+      <label class="ctl"><span data-i18n="episode"></span> <select id="episode"></select></label>
+      <div class="ctl" role="group">
+        <span class="small" style="margin-right:6px" data-i18n="moderator"></span>
+        <span class="seg" id="mod">
+          <button type="button" data-mod="with" aria-pressed="false" data-i18n="modIn" data-i18n-title="modInTitle"></button>
+          <button type="button" data-mod="without" aria-pressed="true" data-i18n="modOut" data-i18n-title="modOutTitle"></button>
+        </span>
+      </div>
+      <div class="spacer"></div>
+      <span class="small" id="status"></span>
+      <span class="seg" id="lang" aria-label="Língua / Language">
+        <button type="button" data-lang="pt" aria-pressed="true">PT</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </span>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <div id="data-warnings"></div>
+
+    <!-- 1. How hot is each episode -->
+    <section class="card" id="heat-card">
+      <div class="card-head"><div>
+        <h2 data-i18n="heatTitle"></h2>
+        <p class="note" id="heat-note"></p>
+      </div></div>
+      <div class="kpis" id="kpis"></div>
+      <div id="scale"></div>
+      <h3 data-i18n="heatBarsTitle"></h3>
+      <div class="legend" id="heat-legend"><span class="key"><span class="dot" style="background:var(--mid);width:14px;height:9px;border-radius:2px"></span><span data-i18n="legendPanel"></span></span>
+        <span class="key"><span class="dot" style="background:#dfe6ff;opacity:.5;width:14px;height:9px;border-radius:2px"></span><span data-i18n="legendMod"></span></span></div>
+      <div id="episode-bars"></div>
+      <p class="formula" id="heat-formula"></p>
+    </section>
+
+    <!-- 2. People -->
+    <section class="card" id="people-card">
+      <div class="card-head"><div>
+        <h2 id="people-title"></h2>
+        <p class="note" data-i18n="peopleNote"></p>
+      </div></div>
+      <div id="people-bars"></div>
+      <p class="formula" id="people-formula"></p>
+      <div id="people-example" style="margin-top:14px"></div>
+      <div id="people-table" style="margin-top:14px"></div>
+    </section>
+
+    <!-- 3. Matrix -->
+    <section class="card" id="matrix-card">
+      <div class="card-head"><div>
+        <h2 data-i18n="matrixTitle"></h2>
+        <p class="note" data-i18n="matrixNote"></p>
+      </div></div>
+      <div id="matrix"></div>
+      <p class="formula" data-i18n="fCount"></p>
+    </section>
+
+    <!-- 4. Each person, episode by episode -->
+    <section class="card" id="evolution-card">
+      <div class="card-head"><div>
+        <h2 data-i18n="gridTitle"></h2>
+        <p class="note" data-i18n="gridNote"></p>
+      </div>
+      <span class="seg" id="evo-metric">
+        <button type="button" data-metric="started" aria-pressed="true" data-i18n="talkedOverOthers"></button>
+        <button type="button" data-metric="suffered" aria-pressed="false" data-i18n="gotTalkedOver"></button>
+      </span></div>
+      <div id="evolution"></div>
+      <p class="formula" data-i18n="fCountGrid"></p>
+    </section>
+
+    <!-- 4b. Balance -->
+    <section class="card" id="balance-card">
+      <div class="card-head"><div>
+        <h2 data-i18n="balTitle"></h2>
+        <p class="note" data-i18n="balNote"></p>
+      </div></div>
+      <div class="pair">
+        <div><h3 data-i18n="balBarsTitle"></h3><div id="balance"></div></div>
+        <div><h3 data-i18n="balCumTitle"></h3><div id="cumulative"></div></div>
+      </div>
+      <p class="formula" id="balance-formula"></p>
+    </section>
+
+    <!-- 5. Timeline -->
+    <section class="card" id="timeline-card">
+      <div class="card-head"><div>
+        <h2 data-i18n="timelineTitle"></h2>
+        <p class="note" data-i18n="timelineNote"></p>
+      </div></div>
+      <div class="legend" id="timeline-legend"></div>
+      <div id="timeline"></div>
+    </section>
+
+    <!-- 6. Topics -->
+    <section class="card" id="topics-card">
+      <div class="card-head"><div>
+        <h2 data-i18n="topicsTitle"></h2>
+        <p class="note" data-i18n="topicsNote"></p>
+      </div></div>
+      <div id="topics"></div>
+      <p class="formula" id="topics-formula"></p>
+    </section>
+
+    <!-- 7. Event table -->
+    <section class="card" id="events-card">
+      <div class="card-head"><div>
+        <h2 data-i18n="eventsTitle"></h2>
+        <p class="note" data-i18n="eventsNote"></p>
+      </div><span class="small" id="events-count"></span></div>
+      <div class="filters">
+        <label><span data-i18n="fEpisode"></span> <select id="f-episode"></select></label>
+        <label><span data-i18n="fTalksOver"></span> <select id="f-starter"></select></label>
+        <label><span data-i18n="fGetsTalkedOver"></span> <select id="f-overlapped"></select></label>
+        <label><span data-i18n="fMin"></span> <input type="number" id="f-min" min="0" step="0.1" style="width:90px"></label>
+        <button type="button" id="f-clear" data-i18n="fClear"></button>
+      </div>
+      <div class="table-wrap"><table class="data" id="events"></table></div>
+    </section>
+
+    <!-- 8. Methodology -->
+    <section class="card" id="method-card">
+      <div class="card-head"><div>
+        <h2 data-i18n="methodTitle"></h2>
+        <p class="note" data-i18n="methodIntro"></p>
+      </div></div>
+      <ol class="steps" data-i18n="methodSteps"></ol>
+      <h3 data-i18n="methodExampleTitle"></h3>
+      <div id="method-example"></div>
+      <h3 data-i18n="methodLimitsTitle"></h3>
+      <p class="note" data-i18n="methodLimits"></p>
+      <h3 data-i18n="nextTitle"></h3>
+      <ul class="steps" data-i18n="nextList"></ul>
+    </section>
+
+  </main>
+
+
+  <footer><div class="wrap">
+    <h3 data-i18n="disclaimerTitle"></h3>
+    <p data-i18n="disclaimer"></p>
+  </div></footer>
+
+  <div id="tooltip" role="tooltip"></div>
+
+  <script>
+    // If the page was opened by double-clicking (file://), the browser blocks the scripts.
+    // Say what to do instead, in both languages. (This tiny script is not a module, so it still runs.)
+    if (location.protocol === 'file:') {
+      document.getElementById('boot-msg').textContent = 'Esta página tem de ser aberta através de um pequeno servidor local. / This page has to be opened through a small local web server.';
+      const help = document.getElementById('boot-help');
+      help.hidden = false;
+      help.textContent = 'Num terminal, na pasta do projeto (semifrio-interruptions) / In a terminal, in the project folder:  python serve.py   →  http://localhost:8765/ui/';
+    }
+  </script>
+  <script src="site-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
