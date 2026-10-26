@@ -45,6 +45,24 @@ export function svgEl(tag, attrs = {}, parent = null, text = null) {
 const width = (box, fallback = 720) => Math.max(280, Math.floor(box.clientWidth || fallback));
 const initials = name => name.split(/\s+/).filter(w => w.length > 2).map(w => w[0]).slice(0, 2).join('');
 
+// "Miguel Santos Carrapatoso" -> ["Miguel Santos", "Carrapatoso"]: words are packed into lines of at most n characters.
+export function wrapName(name, n) {
+  const lines = [];
+  for (const w of name.split(' ')) {
+    if (w.length > n && w.includes('-')) {           // "Aguiar-Conraria" -> "Aguiar-", "Conraria"
+      const i = w.indexOf('-') + 1;
+      lines.push(w.slice(0, i), w.slice(i));
+    } else if (lines.length && (lines[lines.length - 1] + ' ' + w).length <= n && !lines[lines.length - 1].endsWith('-')) {
+      lines[lines.length - 1] += ' ' + w;
+    } else lines.push(w);
+  }
+  return lines;
+}
+function nameUnder(svg, name, cx, y, n, size) {
+  const txt = svgEl('text', { x: cx, y, 'text-anchor': 'middle', class: 'axis', 'font-size': size }, svg);
+  wrapName(name, n).forEach((line, i) => svgEl('tspan', { x: cx, dy: i === 0 ? 0 : size + 1.5 }, txt, line));
+}
+
 // ---- Tooltip (one element, moved around) -----------------------------------------------------------
 const tip = () => document.getElementById('tooltip');
 export function showTooltip(evt, lines) {
@@ -159,7 +177,7 @@ export function drawPeopleBars(box, rows, people, opts) {
     el('span', { class: 'dot', style: `background:${color};width:14px;height:9px;border-radius:2px` }, k);
     k.appendChild(document.createTextNode(text));
   }
-  const W = width(box), narrow = W < 520, rowH = narrow ? 64 : 74, H = rows.length * rowH + 8, left = narrow ? 56 : 84, right = narrow ? 56 : 150;
+  const W = width(box), narrow = W < 520, rowH = narrow ? 76 : 84, H = rows.length * rowH + 8, left = narrow ? 56 : 84, right = narrow ? 56 : 150;
   // The scale follows the panelists. The moderator speaks so little that her rates are far larger (her bar is
   // cut at the edge and marked "off scale", with the true value written next to it).
   const panel = rows.filter(r => !people.find(q => q.key === r.key)?.moderator);
@@ -169,7 +187,8 @@ export function drawPeopleBars(box, rows, people, opts) {
   rows.forEach((r, i) => {
     const p = people.find(q => q.key === r.key), cy = rowH * i + rowH / 2;
     avatarSvg(svg, p, narrow ? 24 : 30, cy, narrow ? 17 : 22, opts.uid);
-    [[opts.started, p.color, 'started', -12], [opts.suffered, 'rgba(255,255,255,.28)', 'suffered', 6]].forEach(([k, fill, what, dy]) => {
+    svgEl('text', { x: left, y: cy - 18, class: 'axis lbl', 'font-size': 12.5 }, svg, p.name);
+    [[opts.started, p.color, 'started', -6], [opts.suffered, 'rgba(255,255,255,.28)', 'suffered', 12]].forEach(([k, fill, what, dy]) => {
       const v = r[k] || 0, off = v > max;
       const bar = svgEl('rect', { x: left, y: cy + dy - 1, width: Math.max(2, x(v) - left), height: 13, rx: 4, fill, class: 'bar' }, svg);
       svgEl('text', { x: x(v) + 6, y: cy + dy + 10, class: 'value' }, svg, off ? (narrow ? `${num(v)} »` : `${num(v)} ${opts.offScaleText}`) : num(v));
@@ -191,7 +210,7 @@ export function drawMatrix(box, rows, people, opts) {
   for (const p of people) {
     const th = el('th', {}, head);
     avatarHtml(th, p, 36);
-    el('div', { class: 'nm' }, th, p.short);
+    el('div', { class: 'nm' }, th, p.name);
   }
   el('th', { class: 'tot' }, head, t('mxTotal'));
   const body = el('tbody', {}, table);
@@ -199,7 +218,7 @@ export function drawMatrix(box, rows, people, opts) {
     const tr = el('tr', {}, body);
     const th = el('th', { class: 'rowh' }, tr);
     avatarHtml(th, a, 30);
-    el('span', { class: 'nm' }, th, a.short);
+    el('span', { class: 'nm' }, th, a.name);
     let started = 0;
     for (const b of people) {
       const n = cell(a.name, b.name);
@@ -238,7 +257,7 @@ export function drawPersonGrid(box, rows, people, opts) {
     const tr = el('tr', {}, body);
     const th = el('th', { class: 'rowh' }, tr);
     avatarHtml(th, p, 30);
-    el('span', { class: 'nm' }, th, p.short);
+    el('span', { class: 'nm' }, th, p.name);
     let total = 0;
     for (const e of eps) {
       const n = get(p, e);
@@ -265,14 +284,21 @@ export { signed };
 export function drawBalanceBars(box, rows, people, opts) {
   box.replaceChildren();
   const eps = [...new Set(rows.map(r => r.episode))].sort((a, b) => a - b);
-  const W = width(box), narrow = W < 520, rowH = narrow ? 84 : 96, left = narrow ? 52 : 76, right = 8, top = 6, H = people.length * rowH + top + 28;
+  const W = width(box), narrow = W < 520, rowH = narrow ? 84 : 96, left = narrow ? 68 : 132, right = 8, top = 6, H = people.length * rowH + top + 28;
   const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.balance)));
   const k = (rowH / 2 - 16) / maxAbs;
   const band = (W - left - right) / eps.length, bw = Math.min(46, band * 0.6);
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': opts.label }, box);
   people.forEach((p, i) => {
     const y0 = top + rowH * i + rowH / 2;
-    avatarSvg(svg, p, narrow ? 24 : 30, y0, narrow ? 17 : 22, 'bal');
+    if (narrow) {
+      avatarSvg(svg, p, left / 2 - 2, y0 - 12, 15, 'bal');
+      nameUnder(svg, p.name, left / 2 - 2, y0 + 17, 9, 9);
+    } else {
+      avatarSvg(svg, p, 24, y0, 20, 'bal');
+      const lines = wrapName(p.name, 15), txt = svgEl('text', { x: 52, y: y0 - (lines.length - 1) * 7 + 4, class: 'axis lbl', 'font-size': 11.5 }, svg);
+      lines.forEach((line, i) => svgEl('tspan', { x: 52, dy: i === 0 ? 0 : 14 }, txt, line));
+    }
     svgEl('line', { x1: left, x2: W - right, y1: y0, y2: y0, class: 'zero' }, svg);
     eps.forEach((e, j) => {
       const r = rows.find(q => q.key === p.key && q.episode === e);

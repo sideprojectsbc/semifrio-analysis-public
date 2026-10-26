@@ -175,9 +175,9 @@ table.matrix td.tot.link:hover { color: #fff; }
 table.data tr.groups th { position: static; background: transparent; text-align: center; color: var(--text); font-size: 12px; padding-bottom: 2px; }
 table.data tr.groups th.grp { border-bottom: 2px solid var(--line); }
 
-ol.steps { margin: 4px 0 6px; padding-left: 22px; max-width: 860px; }
-ol.steps li { margin: 6px 0; color: var(--muted); }
-ol.steps li b { color: var(--text); }
+ol.steps, ul.steps { margin: 4px 0 6px; padding-left: 22px; max-width: 860px; }
+ol.steps li, ul.steps li { margin: 6px 0; color: var(--muted); }
+ol.steps li b, ul.steps li b { color: var(--text); }
 
 svg .zero { stroke: rgba(255, 255, 255, .45); stroke-width: 1.5; }
 

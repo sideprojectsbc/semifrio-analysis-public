@@ -36,7 +36,7 @@ const byName = Object.fromEntries(PEOPLE.map(p => [p.name, p]));
 const fmt = v => (v === null || v === undefined ? '–' : (typeof v === 'number' ? num(v) : String(v)));
 const scopeText = () => (state.episode === null ? t('scopeAll') : t('scopeEp', { n: state.episode }));
 // On a phone the tables use the short names ("Castello Branco"), so the rows do not wrap over three lines.
-const shortOnPhone = name => (window.matchMedia('(max-width: 720px)').matches ? byName[name]?.short || name : name);
+const shortOnPhone = name => name;   // full names everywhere, also on phones (long names wrap)
 const isPhone = () => window.matchMedia('(max-width: 720px)').matches;
 const empty = parent => parent.replaceChildren(el('div', { class: 'empty' }, null, t('noData')));
 
@@ -175,7 +175,7 @@ function dataTable(cols, rows, groups = null) {
   const body = el('tbody', {}, table);
   for (const r of rows) {
     const tr = el('tr', {}, body);
-    cols.forEach(([k], i) => el('td', { class: isNum[i] ? 'num' : '' }, tr, fmt(r[k])));
+    cols.forEach(([k, , , render], i) => { const td = el('td', { class: isNum[i] ? 'num' : '' }, tr, render ? '' : fmt(r[k])); if (render) render(td, r); });
   }
   return wrap;
 }
@@ -198,7 +198,13 @@ async function renderPeople(alive) {
   const ex = rows.find(r => !r.moderator && r.started);
   $('people-formula').textContent = ex ? t('fPeople', { name: ex.name, n: ex.started, min: num(ex.minutes), v: num(ex.started_per_10min) }) : '';
   $('people-table').replaceChildren(el('h3', {}, null, t('allNumbers', { scope })),
-    dataTable([['name', t('colPerson')], ['minutes', t('colMinutes'), t('colMinutesTip')],
+    dataTable([['name', t('colPerson'), '', (td, r) => {   // portrait + full name (+ a note for the moderator)
+        const who = el('span', { class: 'who' }, td);
+        const p = byName[r.name];
+        if (p) avatarHtml(who, p, 26);
+        who.appendChild(document.createTextNode(r.name));
+        if (r.moderator) el('span', { class: 'small', style: 'margin-left:6px' }, who, t('moderatorNote'));
+      }], ['minutes', t('colMinutes'), t('colMinutesTip')],
       ['started', t('colStarted'), t('colStartedTip')],
       ['suffered', t('colSuffered'), t('colSufferedTip')],
       ['started_per_10min', t('colStarted10'), t('col10Tip')],
@@ -261,6 +267,13 @@ async function renderBalance(alive) {
   drawBalanceBars($('balance'), rows, people, { label: t('balLabel'),
     tooltip: (r, p) => [{ text: t('ttBal', { name: p.name, ep: t('ep', { n: r.episode }), s: signed(r.balance) }), cls: 'tt-value' },
       { text: t('ttBalDetail', { a: r.started, b: r.suffered }) }] });
+  const cl = $('cumulative-legend');
+  cl.replaceChildren();
+  for (const p of people) {
+    const k = el('span', { class: 'key' }, cl);
+    avatarHtml(k, p, 22);
+    k.appendChild(document.createTextNode(p.name));
+  }
   drawCumulative($('cumulative'), series, { label: t('balCumLabel'),
     tooltip: (q, p) => [{ text: t('ttCum', { name: p.name, ep: t('ep', { n: q.episode }), c: signed(q.cum) }), cls: 'tt-value' },
       { text: t('ttBal', { name: p.name, ep: t('ep', { n: q.episode }), s: signed(q.balance) }) }] });
@@ -289,7 +302,7 @@ async function renderTimeline(alive) {
   for (const p of shown()) {
     const k = el('span', { class: 'key' }, lg);
     el('span', { class: 'dot', style: `background:${p.color}` }, k);
-    k.appendChild(document.createTextNode(t('tlStarts', { name: p.short })));
+    k.appendChild(document.createTextNode(t('tlStarts', { name: p.name })));
   }
   const box = $('timeline');
   box.replaceChildren();
@@ -404,9 +417,9 @@ async function renderExample(alive) {
   el('b', { style: `color:${b.color}` }, p, b.name);
   p.append(t('exPost', { s: num(r.overlap_s) }));
   const list = el('ul', {}, text);
-  const li1 = el('li', {}, list); el('b', { style: `color:${a.color}` }, li1, a.short); li1.append(t('exScores'));
+  const li1 = el('li', {}, list); el('b', { style: `color:${a.color}` }, li1, a.name); li1.append(t('exScores'));
   el('i', {}, li1, t('exStarted')); li1.append('.');
-  const li2 = el('li', {}, list); el('b', { style: `color:${b.color}` }, li2, b.short); li2.append(t('exScores'));
+  const li2 = el('li', {}, list); el('b', { style: `color:${b.color}` }, li2, b.name); li2.append(t('exScores'));
   el('i', {}, li2, t('exSuffered')); li2.append('.');
   playButton(card, 'play big', 'listenIt', r);
 }
