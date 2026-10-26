@@ -374,14 +374,15 @@ async function playMoment(r, button) {
   playing = { button, stopAt: clip ? Infinity : r.seconds + 7 };
   button.textContent = t('stop');
   button.classList.add('on');
+  // Phones (Safari especially) only start sound inside the tap itself: for a clip we call play() at once, without waiting.
   if (loadedSrc !== src) {
     player.src = src; loadedSrc = src;
-    await new Promise(res => {
+    if (!clip) await new Promise(res => {
       const done = () => { player.removeEventListener('loadedmetadata', done); res(); };
       player.addEventListener('loadedmetadata', done); player.addEventListener('error', done, { once: true });
     });
-  }
-  try { player.currentTime = clip ? 0 : Math.max(0, r.seconds - 3); await player.play(); } catch (err) { console.error(err); stopPlaying(); }
+  } else if (clip) player.currentTime = 0;
+  try { if (!clip) player.currentTime = Math.max(0, r.seconds - 3); await player.play(); } catch (err) { console.error(err); stopPlaying(); }
 }
 
 // The example under "The five voices": a real moment you can listen to (episode 5, 24:47, which was checked by ear:
