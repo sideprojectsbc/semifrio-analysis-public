@@ -61,8 +61,11 @@ export function hideTooltip() { tip().style.display = 'none'; }
 function hover(node, linesFor) {
   node.addEventListener('mousemove', e => showTooltip(e, linesFor()));
   node.addEventListener('mouseleave', hideTooltip);
-  node.addEventListener('click', hideTooltip);   // a click often scrolls away: the mouse never "leaves"
+  // With a mouse, a click often scrolls away (the mouse never "leaves"), so it hides the tooltip. On a touch screen a tap
+  // is mousemove + click, so hiding on click would never let it show: there the next tap or a scroll hides it.
+  node.addEventListener('click', () => { if (!window.matchMedia('(pointer: coarse)').matches) hideTooltip(); });
 }
+document.addEventListener('touchstart', () => hideTooltip(), { passive: true });
 // Scrolling moves things under a still mouse without a mouseleave, so the tooltip would stay: hide it.
 window.addEventListener('scroll', () => hideTooltip(), { passive: true });
 
@@ -156,7 +159,7 @@ export function drawPeopleBars(box, rows, people, opts) {
     el('span', { class: 'dot', style: `background:${color};width:14px;height:9px;border-radius:2px` }, k);
     k.appendChild(document.createTextNode(text));
   }
-  const W = width(box), rowH = 74, H = rows.length * rowH + 8, left = 84, right = 150;
+  const W = width(box), narrow = W < 520, rowH = narrow ? 64 : 74, H = rows.length * rowH + 8, left = narrow ? 56 : 84, right = narrow ? 56 : 150;
   // The scale follows the panelists. The moderator speaks so little that her rates are far larger (her bar is
   // cut at the edge and marked "off scale", with the true value written next to it).
   const panel = rows.filter(r => !people.find(q => q.key === r.key)?.moderator);
@@ -165,11 +168,11 @@ export function drawPeopleBars(box, rows, people, opts) {
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': opts.label }, box);
   rows.forEach((r, i) => {
     const p = people.find(q => q.key === r.key), cy = rowH * i + rowH / 2;
-    avatarSvg(svg, p, 30, cy, 22, opts.uid);
+    avatarSvg(svg, p, narrow ? 24 : 30, cy, narrow ? 17 : 22, opts.uid);
     [[opts.started, p.color, 'started', -12], [opts.suffered, 'rgba(255,255,255,.28)', 'suffered', 6]].forEach(([k, fill, what, dy]) => {
       const v = r[k] || 0, off = v > max;
       const bar = svgEl('rect', { x: left, y: cy + dy - 1, width: Math.max(2, x(v) - left), height: 13, rx: 4, fill, class: 'bar' }, svg);
-      svgEl('text', { x: x(v) + 6, y: cy + dy + 10, class: 'value' }, svg, off ? `${num(v)} ${opts.offScaleText}` : num(v));
+      svgEl('text', { x: x(v) + 6, y: cy + dy + 10, class: 'value' }, svg, off ? (narrow ? `${num(v)} »` : `${num(v)} ${opts.offScaleText}`) : num(v));
       hover(bar, () => opts.tooltip(r, what));
     });
   });
@@ -262,14 +265,14 @@ export { signed };
 export function drawBalanceBars(box, rows, people, opts) {
   box.replaceChildren();
   const eps = [...new Set(rows.map(r => r.episode))].sort((a, b) => a - b);
-  const W = width(box), rowH = 96, left = 76, right = 8, top = 6, H = people.length * rowH + top + 28;
+  const W = width(box), narrow = W < 520, rowH = narrow ? 84 : 96, left = narrow ? 52 : 76, right = 8, top = 6, H = people.length * rowH + top + 28;
   const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.balance)));
   const k = (rowH / 2 - 16) / maxAbs;
   const band = (W - left - right) / eps.length, bw = Math.min(46, band * 0.6);
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': opts.label }, box);
   people.forEach((p, i) => {
     const y0 = top + rowH * i + rowH / 2;
-    avatarSvg(svg, p, 30, y0, 22, 'bal');
+    avatarSvg(svg, p, narrow ? 24 : 30, y0, narrow ? 17 : 22, 'bal');
     svgEl('line', { x1: left, x2: W - right, y1: y0, y2: y0, class: 'zero' }, svg);
     eps.forEach((e, j) => {
       const r = rows.find(q => q.key === p.key && q.episode === e);
@@ -289,7 +292,7 @@ export function drawBalanceBars(box, rows, people, opts) {
 export function drawCumulative(box, series, opts) {
   box.replaceChildren();
   const eps = [...new Set(series.flatMap(s => s.points.map(q => q.episode)))].sort((a, b) => a - b);
-  const W = width(box), H = 360, m = { t: 24, r: 90, b: 34, l: 44 };
+  const W = width(box), narrow = W < 520, H = narrow ? 300 : 360, m = { t: 24, r: narrow ? 62 : 90, b: 34, l: narrow ? 36 : 44 };
   const all = series.flatMap(s => s.points.map(q => q.cum)).concat(0);
   const lo = Math.floor(Math.min(...all) / 5) * 5 - 0, hi = Math.ceil(Math.max(...all) / 5) * 5;
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': opts.label }, box);
@@ -308,8 +311,8 @@ export function drawCumulative(box, series, opts) {
       hover(dot, () => opts.tooltip(q, p));
     }
     const end = s.points[s.points.length - 1];
-    avatarSvg(svg, p, x(end.episode) + 30, y(end.cum), 14, 'cum');
-    svgEl('text', { x: x(end.episode) + 50, y: y(end.cum) + 5, class: 'value' }, svg, signed(end.cum));
+    avatarSvg(svg, p, x(end.episode) + (narrow ? 20 : 30), y(end.cum), narrow ? 11 : 14, 'cum');
+    svgEl('text', { x: x(end.episode) + (narrow ? 36 : 50), y: y(end.cum) + 5, class: 'value' }, svg, signed(end.cum));
   }
 }
 
@@ -338,7 +341,9 @@ export function drawTimeline(box, data, people, opts) {
   data.topics.forEach((tp, i) => {
     const x1 = x(tp.start_s), x2 = x(tp.end_s);
     const r = svgEl('rect', { x: x1, y: 100, width: Math.max(1, x2 - x1 - 1), height: 20, rx: 4, fill: TOPIC_FILLS[i % TOPIC_FILLS.length], stroke: 'rgba(255,255,255,.25)', 'stroke-width': 1 }, svg);
-    if (x2 - x1 > 60) svgEl('text', { x: x1 + 6, y: 114, class: 'topic' }, svg, tp.topic);
+    // the name is shortened (with ...) to fit its band, and left out when the band is too narrow for even a few letters
+    const room = Math.floor((x2 - x1 - 12) / 6.3);
+    if (room >= 4) svgEl('text', { x: x1 + 6, y: 114, class: 'topic' }, svg, tp.topic.length <= room ? tp.topic : tp.topic.slice(0, room - 1) + '…');
     hover(r, () => [{ text: tp.topic, cls: 'tt-value' }, { text: `${clock(tp.start_s)}–${clock(tp.end_s)}` }]);
   });
 }
@@ -346,15 +351,17 @@ export function drawTimeline(box, data, people, opts) {
 // ---- 7. Topics: overlaps per 10 minutes of each topic -----------------------------------------------
 export function drawTopicBars(box, rows, opts) {
   box.replaceChildren();
-  const W = width(box), rowH = 34, left = 270, H = rows.length * rowH + 8;
+  const W = width(box), narrow = W < 520, rowH = narrow ? 50 : 34, left = narrow ? 0 : 270, H = rows.length * rowH + 8;
   const max = Math.max(1, ...rows.map(r => r.per_10min));
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': opts.label }, box);
   rows.forEach((r, i) => {
     const cy = 4 + i * rowH;
-    svgEl('text', { x: left - 10, y: cy + 19, 'text-anchor': 'end', class: 'axis lbl' }, svg, r.topic);
-    const w = Math.max(2, (r.per_10min / max) * (W - left - 60));
-    const bar = svgEl('rect', { x: left, y: cy + 4, width: w, height: 20, rx: 4, fill: tempColor(r.per_10min / max), class: 'bar' }, svg);
-    svgEl('text', { x: left + w + 6, y: cy + 19, class: 'value' }, svg, num(r.per_10min));
+    const by = narrow ? cy + 22 : cy + 4, bh = narrow ? 16 : 20;
+    if (narrow) svgEl('text', { x: 0, y: cy + 14, class: 'axis lbl' }, svg, r.topic);
+    else svgEl('text', { x: left - 10, y: cy + 19, 'text-anchor': 'end', class: 'axis lbl' }, svg, r.topic);
+    const w = Math.max(2, (r.per_10min / max) * (W - left - 44));
+    const bar = svgEl('rect', { x: left, y: by, width: w, height: bh, rx: 4, fill: tempColor(r.per_10min / max), class: 'bar' }, svg);
+    svgEl('text', { x: left + w + 6, y: by + bh - 4, class: 'value' }, svg, num(r.per_10min));
     hover(bar, () => opts.tooltip(r));
   });
 }

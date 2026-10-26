@@ -35,6 +35,9 @@ const shown = () => PEOPLE.filter(p => !(state.noMod && p.moderator));
 const byName = Object.fromEntries(PEOPLE.map(p => [p.name, p]));
 const fmt = v => (v === null || v === undefined ? '–' : (typeof v === 'number' ? num(v) : String(v)));
 const scopeText = () => (state.episode === null ? t('scopeAll') : t('scopeEp', { n: state.episode }));
+// On a phone the tables use the short names ("Castello Branco"), so the rows do not wrap over three lines.
+const shortOnPhone = name => (window.matchMedia('(max-width: 720px)').matches ? byName[name]?.short || name : name);
+const isPhone = () => window.matchMedia('(max-width: 720px)').matches;
 const empty = parent => parent.replaceChildren(el('div', { class: 'empty' }, null, t('noData')));
 
 // ---- 1. Start DuckDB-WASM ----------------------------------------------------------------------
@@ -430,7 +433,7 @@ async function renderMethod(alive) {
     for (const name of [r.starter, r.overlapped]) {
       const td = el('td', {}, tr), who = el('span', { class: 'who' }, td);
       el('span', { class: 'dot', style: `background:${byName[name]?.color || '#999'}` }, who);
-      who.appendChild(document.createTextNode(name));
+      who.appendChild(document.createTextNode(shortOnPhone(name)));
     }
     el('td', { class: 'num' }, tr, num(r.overlap_s, 2));
     playButton(el('td', { class: 'cmd' }, tr), 'play', 'listen', r, t('listenTip', { time: r.time, ep: r.episode }));
@@ -447,22 +450,28 @@ async function renderTable(alive) {
   const table = $('events');
   table.replaceChildren();
   const head = el('tr', {}, el('thead', {}, table));
-  [['thEp', 1], ['thTime', 1], ['thTalksOver'], ['thGets'], ['thOverlap', 1], ['thHear']].forEach(([k, isNum]) =>
+  // On a phone the table is narrower: episode and time share one cell, the overlap column is just "s", the button is a ▶.
+  const phone = isPhone();
+  (phone ? [['thTime', 1], ['thTalksOver'], ['thGets'], ['thSecondsShort', 1], ['thHearShort']]
+         : [['thEp', 1], ['thTime', 1], ['thTalksOver'], ['thGets'], ['thOverlap', 1], ['thHear']]).forEach(([k, isNum]) =>
     el('th', { class: isNum ? 'num' : '' }, head, t(k)));
   const body = el('tbody', {}, table);
-  if (!rows.length) el('td', { colspan: '6', class: 'empty' }, el('tr', {}, body), t('noMatch'));
+  if (!rows.length) el('td', { colspan: phone ? '5' : '6', class: 'empty' }, el('tr', {}, body), t('noMatch'));
   for (const r of rows) {
     const tr = el('tr', { id: `ev-${r.episode}-${r.seconds}` }, body);
-    el('td', { class: 'num' }, tr, String(r.episode));
-    el('td', { class: 'num', title: `${r.seconds} s` }, tr, r.time);
+    if (phone) el('td', { class: 'num', title: `${r.seconds} s` }, tr, `${r.episode} · ${r.time}`);
+    else {
+      el('td', { class: 'num' }, tr, String(r.episode));
+      el('td', { class: 'num', title: `${r.seconds} s` }, tr, r.time);
+    }
     for (const name of [r.starter, r.overlapped]) {
       const td = el('td', {}, tr), who = el('span', { class: 'who' }, td);
       el('span', { class: 'dot', style: `background:${byName[name]?.color || '#999'}` }, who);
-      who.appendChild(document.createTextNode(name));
+      who.appendChild(document.createTextNode(shortOnPhone(name)));
     }
-    el('td', { class: 'num' }, tr, r.overlap_s === null ? '–' : num(r.overlap_s, 2));
+    el('td', { class: 'num' }, tr, r.overlap_s === null ? '–' : num(r.overlap_s, phone ? 1 : 2));
     const cell = el('td', { class: 'cmd' }, tr);
-    playButton(cell, 'play', 'listen', r, t('listenTip', { time: r.time, ep: r.episode }));
+    playButton(cell, 'play', phone ? 'listenIcon' : 'listen', r, t('listenTip', { time: r.time, ep: r.episode }));
   }
 }
 

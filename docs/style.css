@@ -190,3 +190,54 @@ footer p { margin: 0; max-width: 900px; }
 .legend .lead { color: var(--text); font-weight: 600; }
 
 .kicker { font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8fb8ff; margin-bottom: 2px; }
+
+/* ---- Phones and small screens ------------------------------------------------------------------------ */
+/* Grid items default to min-width:auto, so one wide table made the whole page wider than the screen. */
+main { grid-template-columns: minmax(0, 1fr); }
+.card, .card > * { min-width: 0; }
+#matrix, #evolution, #method-example { overflow-x: auto; }
+
+@media (max-width: 720px) {
+  body { font-size: 14.5px; }
+  .wrap { padding: 0 12px; }
+  .top { padding: 14px 0 10px; }
+  .top .wrap { gap: 12px; }
+  .logo { height: 48px; }
+  .top h1 { font-size: 22px; }
+  .sub { font-size: 13.5px; }
+  .top .tag { font-size: 11.5px; }
+  /* the filter bar scrolls away with the page instead of covering the screen */
+  .controls { position: static; }
+  .controls .wrap { gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+  .controls .spacer, #status { display: none; }
+  main { padding-top: 14px; gap: 14px; }
+  .card { padding: 14px 14px 12px; }
+  .card h2 { font-size: 18px; }
+  .note { font-size: 14px; }
+  .kpis { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .kpi { padding: 10px 12px; }
+  .kpi b { font-size: 26px; }
+  .kpi span { font-size: 11.5px; }
+  .pair { grid-template-columns: 1fr; gap: 14px; }
+  .scale { padding-top: 30px; }
+  .scale-mark .lab { font-size: 11px; }
+  .scale-ends { font-size: 11px; }
+  table.matrix { border-spacing: 3px; }
+  table.matrix td, table.matrix.grid td { width: 40px; height: 40px; font-size: 15px; border-radius: 8px; }
+  table.matrix th.corner, table.matrix.grid th.corner { width: auto; font-size: 9px; }
+  table.matrix th.rowh { white-space: normal; text-align: center; width: 60px; }
+  table.matrix th.rowh .avatar { display: flex; margin: 0 auto 2px; }
+  table.matrix th.rowh .nm { display: block; margin: 0; font-size: 9px; }
+  table.matrix th .avatar { width: 26px !important; height: 26px !important; font-size: 10px !important; }
+  table.matrix th .nm { font-size: 9px; }
+  table.matrix td.tot, table.matrix th.tot { font-size: 11px; }
+  .filters { gap: 8px; }
+  .filters label { flex: 1 1 130px; }
+  .filters select, .filters input { width: 100%; }
+  table.data { font-size: 12px; }
+  table.data th, table.data td { padding: 5px 6px; }
+  .example { padding: 10px 12px; }
+  .formula { font-size: 11.5px; }
+  footer { font-size: 12px; }
+  button.play { padding: 3px 8px; }
+}
