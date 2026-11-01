@@ -23,7 +23,7 @@ export const PEOPLE = [
   { key: 'carrapatoso',     name: 'Miguel Santos Carrapatoso', short: 'Carrapatoso',     role: 'Panelist',  color: '#a98bff', photo: 'carrapatoso.jpg',     moderator: false },
 ];
 
-export const EPISODE_IDS = [1, 2, 3, 4, 5];
+export const EPISODE_IDS = [1, 2, 3, 4, 5, 6];
 export const FILES = ['episode.json', 'overlaps.csv', 'talk_time.csv', 'topics.csv'];
 
 // Write a text value as an SQL string literal: O'Neil -> 'O''Neil'.
