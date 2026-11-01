@@ -41,7 +41,7 @@ CREATE OR REPLACE TABLE episodes (episode INTEGER, rtp_id VARCHAR, length_min DO
 
 CREATE OR REPLACE TABLE overlap_events (
   episode INTEGER, seconds DOUBLE, time VARCHAR, starter VARCHAR, overlapped VARCHAR,
-  overlap_s DOUBLE, context VARCHAR);
+  overlap_s DOUBLE, context VARCHAR, confidence INTEGER);
 
 CREATE OR REPLACE TABLE talk_time (episode INTEGER, speaker VARCHAR, minutes DOUBLE, turns INTEGER);
 
@@ -78,7 +78,8 @@ INSERT INTO episodes VALUES (${ep}, ${sqlString(j.rtp_id)}, ${Number(j.length_mi
     await db.query(`
 DELETE FROM overlap_events WHERE episode = ${ep};
 INSERT INTO overlap_events
-SELECT ${ep}, TRY_CAST(seconds AS DOUBLE), time, starter, overlapped, TRY_CAST(overlap_s AS DOUBLE), context
+SELECT ${ep}, TRY_CAST(seconds AS DOUBLE), time, starter, overlapped, TRY_CAST(overlap_s AS DOUBLE), context,
+       TRY_CAST(confidence AS INTEGER)
 FROM ${csv(f)};`);
   }
   if (files['talk_time.csv'] !== undefined) {

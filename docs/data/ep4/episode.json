@@ -2,5 +2,10 @@
  "episode": 4,
  "rtp_id": "e961299",
  "length_min": 55.44,
- "audio_file": "ep4_e961299_16k.wav"
+ "audio_file": "ep4_e961299_16k.wav",
+ "label_confidence": {
+  "confident_at": 80,
+  "speaking_time_confident_pct": 94.0,
+  "overlaps_confident_pct": 39.0
+ }
 }

@@ -92,8 +92,9 @@ export function eventsSql(f) {
   if (f.starter) w.push(`o.starter = ${sqlString(f.starter)}`);
   if (f.overlapped) w.push(`o.overlapped = ${sqlString(f.overlapped)}`);
   if (f.minOverlap) w.push(`o.overlap_s >= ${Number(f.minOverlap)}`);
+  if (f.maxConf) w.push(`o.confidence < ${Number(f.maxConf)}`);   // review: only the less certain attributions
   return `
-SELECT o.episode, o.seconds, o.time, o.starter, o.overlapped, o.overlap_s, e.audio_file
+SELECT o.episode, o.seconds, o.time, o.starter, o.overlapped, o.overlap_s, o.confidence, e.audio_file
 FROM overlap_events o JOIN episodes e USING (episode)
 WHERE ${w.join('\n  AND ')}
 ORDER BY o.episode, o.seconds

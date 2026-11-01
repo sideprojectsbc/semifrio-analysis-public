@@ -2,5 +2,10 @@
  "episode": 3,
  "rtp_id": "e959584",
  "length_min": 50.95,
- "audio_file": "ep3_e959584_16k.wav"
+ "audio_file": "ep3_e959584_16k.wav",
+ "label_confidence": {
+  "confident_at": 80,
+  "speaking_time_confident_pct": 91.4,
+  "overlaps_confident_pct": 36.8
+ }
 }

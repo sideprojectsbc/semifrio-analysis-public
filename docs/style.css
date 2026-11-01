@@ -235,9 +235,12 @@ main { grid-template-columns: minmax(0, 1fr); }
   .filters label { flex: 1 1 130px; }
   .filters select, .filters input { width: 100%; }
   table.data { font-size: 12px; }
-  table.data th, table.data td { padding: 5px 6px; }
+  table.data th, table.data td { padding: 5px 4px; }
   .example { padding: 10px 12px; }
   .formula { font-size: 11.5px; }
   footer { font-size: 12px; }
   button.play { padding: 3px 8px; }
 }
+
+td.conf.mid { color: #ffd479; }
+td.conf.low { color: #ff8a80; font-weight: 700; }

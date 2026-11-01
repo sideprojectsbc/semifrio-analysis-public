@@ -346,7 +346,7 @@ async function renderTopics(alive) {
 // ---- View 7: event table ------------------------------------------------------------------------
 function currentFilters() {
   return { ...filter(), eventEpisode: $('f-episode').value, starter: $('f-starter').value, overlapped: $('f-overlapped').value,
-    minOverlap: $('f-min').value };
+    minOverlap: $('f-min').value, maxConf: $('f-conf').value };
 }
 
 // ---- Playing a moment ------------------------------------------------------------------------------
@@ -460,17 +460,18 @@ async function renderMethod(alive) {
 async function renderTable(alive) {
   const rows = await db.query(Q.eventsSql(currentFilters()));
   if (!alive()) return;
-  $('events-count').textContent = t('eventsCount', { n: rows.length, more: rows.length === 500 });
+  const sure = rows.length ? Math.round(100 * rows.filter(r => (r.confidence ?? 100) >= 80).length / rows.length) : 0;
+  $('events-count').textContent = t('eventsCount', { n: rows.length, more: rows.length === 500 }) + (rows.length ? t('eventsConfShare', { pct: sure }) : '');
   const table = $('events');
   table.replaceChildren();
   const head = el('tr', {}, el('thead', {}, table));
   // On a phone the table is narrower: episode and time share one cell, the overlap column is just "s", the button is a ▶.
   const phone = isPhone();
-  (phone ? [['thTime', 1], ['thTalksOver'], ['thGets'], ['thSecondsShort', 1], ['thHearShort']]
-         : [['thEp', 1], ['thTime', 1], ['thTalksOver'], ['thGets'], ['thOverlap', 1], ['thHear']]).forEach(([k, isNum]) =>
+  (phone ? [['thTime', 1], ['thTalksOver'], ['thGets'], ['thSecondsShort', 1], ['thConfShort', 1], ['thHearShort']]
+         : [['thEp', 1], ['thTime', 1], ['thTalksOver'], ['thGets'], ['thOverlap', 1], ['thConf', 1], ['thHear']]).forEach(([k, isNum]) =>
     el('th', { class: isNum ? 'num' : '' }, head, t(k)));
   const body = el('tbody', {}, table);
-  if (!rows.length) el('td', { colspan: phone ? '5' : '6', class: 'empty' }, el('tr', {}, body), t('noMatch'));
+  if (!rows.length) el('td', { colspan: phone ? '6' : '7', class: 'empty' }, el('tr', {}, body), t('noMatch'));
   for (const r of rows) {
     const tr = el('tr', { id: `ev-${r.episode}-${r.seconds}` }, body);
     if (phone) el('td', { class: 'num', title: `${r.seconds} s` }, tr, `${r.episode} · ${r.time}`);
@@ -484,6 +485,9 @@ async function renderTable(alive) {
       who.appendChild(document.createTextNode(shortOnPhone(name)));
     }
     el('td', { class: 'num' }, tr, r.overlap_s === null ? '–' : num(r.overlap_s, phone ? 1 : 2));
+    const c = r.confidence;
+    el('td', { class: `num conf ${c === null || c === undefined ? '' : c >= 80 ? 'hi' : c >= 50 ? 'mid' : 'low'}`, title: t('confTip', { s: c ?? '?', o: c ?? '?' }) }, tr,
+      c === null || c === undefined ? '–' : `${c} %`);
     const cell = el('td', { class: 'cmd' }, tr);
     playButton(cell, 'play', phone ? 'listenIcon' : 'listen', r, t('listenTip', { time: r.time, ep: r.episode }));
   }
@@ -495,6 +499,10 @@ function fillFilterOptions() {
   el('option', { value: '' }, ep, t('fAsAbove'));
   for (const n of EPISODE_IDS) el('option', { value: String(n) }, ep, t('episodeN', { n }));
   ep.value = keepEp;
+  const cf = $('f-conf'), keepConf = cf.value;
+  cf.replaceChildren();
+  for (const [v, k] of [['', 'fConfAll'], ['80', 'fConfLt80'], ['50', 'fConfLt50']]) el('option', { value: v }, cf, t(k));
+  cf.value = keepConf;
   for (const id of ['f-starter', 'f-overlapped']) {
     const sel = $(id), keep = sel.value;
     sel.replaceChildren();
@@ -532,9 +540,9 @@ function setupControls() {
   for (const b of $('evo-metric').querySelectorAll('button')) {
     b.addEventListener('click', () => { state.evoMetric = b.dataset.metric; setPressed('evo-metric', 'metric', b.dataset.metric); renderEvolution(() => true); });
   }
-  for (const id of ['f-episode', 'f-starter', 'f-overlapped', 'f-min']) $(id).addEventListener('change', () => renderTable(() => true));
+  for (const id of ['f-episode', 'f-starter', 'f-overlapped', 'f-min', 'f-conf']) $(id).addEventListener('change', () => renderTable(() => true));
   $('f-clear').addEventListener('click', () => {
-    for (const id of ['f-episode', 'f-starter', 'f-overlapped', 'f-min']) $(id).value = '';
+    for (const id of ['f-episode', 'f-starter', 'f-overlapped', 'f-min', 'f-conf']) $(id).value = '';
     renderTable(() => true);
   });
   // Redraw the SVG charts when the window width changes (they are drawn to fit).

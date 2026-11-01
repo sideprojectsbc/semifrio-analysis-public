@@ -2,5 +2,10 @@
  "episode": 6,
  "rtp_id": "e964442",
  "length_min": 52.68,
- "audio_file": "ep6_e964442_16k.wav"
+ "audio_file": "ep6_e964442_16k.wav",
+ "label_confidence": {
+  "confident_at": 80,
+  "speaking_time_confident_pct": 95.9,
+  "overlaps_confident_pct": 40.0
+ }
 }
