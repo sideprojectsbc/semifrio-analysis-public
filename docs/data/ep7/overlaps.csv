@@ -1,0 +1,43 @@
+﻿seconds,time,starter,overlapped,overlap_s,context,confidence,starter_conf,overlapped_conf
+67.46,1:07,Miguel Santos Carrapatoso,Maria Nobre,0.76,,28,28,91
+139.18,2:19,Maria Nobre,Miguel Santos Carrapatoso,0.52,,100,100,100
+143.06,2:23,Miguel Santos Carrapatoso,Maria Nobre,0.84,,83,83,100
+443.64,7:24,Maria Nobre,Pedro Brinca,0.32,,89,89,100
+630.18,10:30,Maria Nobre,Maria Castello Branco,1.08,,97,97,100
+732.3,12:12,Maria Nobre,Maria Castello Branco,0.74,,70,70,100
+1263.26,21:03,Maria Nobre,Pedro Brinca,0.49,,35,35,100
+1267.38,21:07,Pedro Brinca,Maria Nobre,0.54,,35,100,35
+1297.46,21:37,Maria Castello Branco,Pedro Brinca,0.91,,100,100,100
+1300.91,21:41,Pedro Brinca,Maria Castello Branco,1.4,,100,100,100
+1365.32,22:45,Maria Nobre,Pedro Brinca,0.61,,83,100,83
+1366.45,22:46,Pedro Brinca,Maria Nobre,0.54,,92,92,100
+1425.17,23:45,Pedro Brinca,Luís Aguiar-Conraria,1.27,,62,62,70
+1498.03,24:58,Maria Castello Branco,Maria Nobre,0.94,,47,62,47
+1500.59,25:01,Miguel Santos Carrapatoso,Maria Nobre,0.96,,88,100,88
+1533.92,25:34,Pedro Brinca,Miguel Santos Carrapatoso,0.46,,28,28,100
+1535.5,25:36,Miguel Santos Carrapatoso,Pedro Brinca,0.46,,28,80,28
+1537.61,25:38,Luís Aguiar-Conraria,Pedro Brinca,0.62,,71,77,71
+1576.38,26:16,Maria Castello Branco,Pedro Brinca,0.83,,100,100,100
+1587.04,26:27,Maria Nobre,Maria Castello Branco,2.25,,21,21,69
+1620.98,27:01,Maria Castello Branco,Maria Nobre,0.62,,46,54,46
+1631.57,27:12,Maria Nobre,Luís Aguiar-Conraria,0.81,,56,56,100
+1787.53,29:48,Maria Castello Branco,Miguel Santos Carrapatoso,0.68,,57,57,83
+1801.69,30:02,Maria Nobre,Luís Aguiar-Conraria,0.75,,23,23,100
+1881.31,31:21,Maria Nobre,Maria Castello Branco,1.35,,67,98,67
+1907.14,31:47,Maria Castello Branco,Maria Nobre,2.67,,73,73,98
+1911.46,31:51,Maria Castello Branco,Maria Nobre,1.28,,23,83,23
+1946.39,32:26,Maria Nobre,Maria Castello Branco,0.91,,98,100,98
+1961.31,32:41,Maria Castello Branco,Maria Nobre,1.1,,61,100,61
+2298.74,38:19,Maria Castello Branco,Pedro Brinca,1.15,,79,79,87
+2348.93,39:09,Maria Castello Branco,Pedro Brinca,0.52,,56,56,100
+2579.86,43:00,Miguel Santos Carrapatoso,Maria Nobre,0.54,,76,92,76
+2581.08,43:01,Maria Nobre,Miguel Santos Carrapatoso,0.64,,22,22,92
+2781.07,46:21,Maria Nobre,Miguel Santos Carrapatoso,1.6,,60,60,100
+2785.01,46:25,Maria Nobre,Miguel Santos Carrapatoso,0.76,,97,97,100
+2800.03,46:40,Pedro Brinca,Miguel Santos Carrapatoso,0.76,,63,63,100
+2806.51,46:47,Maria Nobre,Miguel Santos Carrapatoso,1.1,,87,87,100
+3036.01,50:36,Maria Nobre,Maria Castello Branco,0.67,,64,64,100
+3052.58,50:53,Miguel Santos Carrapatoso,Maria Castello Branco,0.52,,58,96,58
+3056.77,50:57,Maria Nobre,Maria Castello Branco,1.2,,66,66,85
+3083.03,51:23,Maria Nobre,Maria Castello Branco,0.76,,62,62,100
+3101.03,51:41,Maria Nobre,Maria Castello Branco,1.5,,81,81,100

@@ -1,0 +1,11 @@
+{
+ "episode": 7,
+ "rtp_id": "e966008",
+ "length_min": 52.42,
+ "audio_file": "ep7_e966008_16k.wav",
+ "label_confidence": {
+  "confident_at": 80,
+  "speaking_time_confident_pct": 95.0,
+  "overlaps_confident_pct": 33.3
+ }
+}
