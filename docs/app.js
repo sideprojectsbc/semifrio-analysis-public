@@ -14,7 +14,7 @@ import { arrowToObjects } from './arrow_rows.js';
 import { createSchema, loadEpisode, unknownNames, EPISODE_IDS, FILES, PEOPLE } from './db.js';
 import * as Q from './queries.js';
 import { t, num, initLang, setLang, getLang, applyStatic } from './i18n.js';
-import { drawTempScale, drawEpisodeBars, drawPeopleBars, drawMatrix, drawPersonGrid, drawBalanceBars, drawCumulative, drawQuadrant, signed, drawTimeline, drawTopicBars,
+import { drawTempScale, drawEpisodeBars, drawPeopleBars, drawMatrix, drawPersonGrid, drawBalanceBars, drawCumulative, drawQuadrant, drawTypeBars, drawZones, TYPE_COLOR, clock, signed, drawTimeline, drawTopicBars,
   avatarHtml, el, hideTooltip } from './charts.js';
 
 const $ = id => document.getElementById(id);
@@ -109,7 +109,7 @@ let renderId = 0;
 async function renderAll() {
   const id = ++renderId, alive = () => id === renderId;
   for (const [name, fn] of [['heat', renderHeat], ['people', renderPeople], ['matrix', renderMatrix],
-    ['evolution', renderEvolution], ['balance', renderBalance], ['floor', renderFloor], ['quadrant', renderQuadrant], ['moderator', renderModerator], ['timeline', renderTimeline], ['topics', renderTopics], ['events', renderTable],
+    ['evolution', renderEvolution], ['balance', renderBalance], ['floor', renderFloor], ['types', renderTypes], ['zones', renderZones], ['quadrant', renderQuadrant], ['moderator', renderModerator], ['timeline', renderTimeline], ['topics', renderTopics], ['events', renderTable],
     ['method', renderMethod]]) {
     try { await fn(alive); } catch (err) { console.error(`${name} view:`, err); }
   }
@@ -332,6 +332,71 @@ async function renderFloor(alive) {
       ['raw_started', t('floorColRawS'), t('col10Tip')],
       ['raw_suffered', t('floorColRawB'), t('col10Tip')]], data,
       [['', 1], [t('floorGrpTurn'), 1], [t('floorGrpIn'), 3], [t('floorGrpOut'), 2], [t('floorGrpRec'), 1], [t('floorGrpRaw'), 2]]));
+}
+
+// The colour key of the overlap types (one chip per type)
+function typeLegend(box, kinds) {
+  box.replaceChildren();
+  for (const k of kinds) {
+    const key = el('span', { class: 'key' }, box);
+    el('span', { class: 'dot', style: `background:${TYPE_COLOR[k]};width:14px;height:9px;border-radius:2px` }, key);
+    key.appendChild(document.createTextNode(t(`type_${k}`)));
+  }
+}
+
+// View 4c2: types of cut. How the cuts in a person's turn ended, how the cuts they made ended, and what they did in their own turn.
+async function renderTypes(alive) {
+  const rows = await db.query(Q.floorTypesSql({ episode: state.episode, noMod: true }));
+  if (!alive()) return;
+  const people = PEOPLE.filter(p => !p.moderator);
+  if (!rows.some(r => r.rec_takeover + r.rec_resisted + r.rec_contested + r.rec_cut + r.made_takeover + r.made_resisted + r.made_contested + r.made_cut + r.recovery + r.over_other)) {
+    empty($('types')); $('types-legend').replaceChildren(); return;
+  }
+  const scope = scopeText();
+  const outcomes = pre => ['takeover', 'resisted', 'contested', 'cut'].map(o => ({ col: `${pre}_${o}`, kind: `intrusion_${o}` }));
+  const kinds = ['intrusion_takeover', 'intrusion_resisted', 'intrusion_contested', 'intrusion_cut', 'recovery', 'owner_over_other'];
+  typeLegend($('types-legend'), kinds);
+  drawTypeBars($('types'), rows, people, {
+    label: t('typesLabel', { scope }), color: k => TYPE_COLOR[k],
+    rows: [{ label: t('typesRowRec'), parts: outcomes('rec') }, { label: t('typesRowMade'), parts: outcomes('made') },
+      { label: t('typesRowOwn'), parts: [{ col: 'recovery', kind: 'recovery' }, { col: 'over_other', kind: 'owner_over_other' }] }],
+    tooltip: (r, g, part, v) => [{ text: t('ttTypes', { name: r.name, row: g.label, type: t(`type_${part.kind}`), n: v }), cls: 'tt-value' }],
+  });
+}
+
+// View 4c3: zones. Each episode as a line: whose turn it is (bands) and every overlap in its place (ticks coloured by type).
+async function renderZones(alive) {
+  const [slots, events, topics] = await Promise.all([db.query(Q.zonesSlotsSql()), db.query(Q.zonesEventsSql()),
+    db.query('SELECT episode, start_s, end_s, topic FROM topics ORDER BY episode, start_s')]);
+  const meta = await db.query('SELECT episode, length_min FROM episodes ORDER BY episode');
+  if (!alive()) return;
+  const eps = (state.episode === null ? state.loaded : [state.episode]).filter(e => slots.some(s => s.episode === e));
+  if (!eps.length) { empty($('zones')); $('zones-legend').replaceChildren(); $('zones-people').replaceChildren(); return; }
+  const people = PEOPLE.filter(p => !p.moderator);
+  const keyOf = Object.fromEntries(PEOPLE.map(p => [p.name, p.key]));
+  const blocks = eps.map(e => ({
+    episode: e, lengthSec: (meta.find(m => m.episode === e)?.length_min ?? 55) * 60,
+    topics: topics.filter(r => r.episode === e),
+    slots: slots.filter(r => r.episode === e).map(r => ({ ...r, key: keyOf[r.owner] })),
+    events: events.filter(r => r.episode === e).map(r => ({ ...r, cls: r.class })),
+  }));
+  const pl = $('zones-people');
+  pl.replaceChildren();
+  for (const p of people) {
+    const k = el('span', { class: 'key' }, pl);
+    avatarHtml(k, p, 20);
+    k.appendChild(document.createTextNode(` ${p.name}`));
+  }
+  el('span', { class: 'small', style: 'margin-left:8px' }, pl, t('zonesBands'));
+  typeLegend($('zones-legend'), ['intrusion_takeover', 'intrusion_resisted', 'intrusion_contested', 'intrusion_cut', 'recovery', 'owner_over_other', 'side_talk', 'open_debate', 'moderator']);
+  const hideMod = state.noMod;
+  drawZones($('zones'), blocks, PEOPLE, {
+    label: t('zonesLabel'), color: k => TYPE_COLOR[k], hide: e => hideMod && e.cls === 'moderator',
+    slotTooltip: (b, s) => [{ text: t('ttZoneTurn', { name: s.owner, ep: t('ep', { n: b.episode }), a: clock(s.start_s), b: clock(s.end_s) }), cls: 'tt-value' },
+      { text: t('ttZoneAnswer', { a: clock(s.start_s), b: clock(s.floor_end_s) }) }],
+    tooltip: (b, e) => [{ text: t('ttZoneEvent', { ep: t('ep', { n: b.episode }), time: e.time, starter: e.starter, over: e.overlapped }), cls: 'tt-value' },
+      { text: t(`type_${e.cls}`) }, ...(e.detail ? [{ text: e.detail }] : []), { text: t('ttZoneIn', { owner: e.owner || '–' }) }],
+  });
 }
 
 // View 4d: the quadrant. Cutting others (x) against being cut in own turn (y); the trail is the cumulative position over the episodes.

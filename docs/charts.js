@@ -445,3 +445,84 @@ export function drawQuadrant(box, series, opts) {
     if (!dimmed(s)) hover(g, () => opts.tooltipAvg(s.avg, s.person));
   }
 }
+
+// ---- Types of overlap: one colour each, used by the type bars and by the zones timeline -------------------------------
+export const TYPE_COLOR = {
+  intrusion_takeover: '#ff5a4f', intrusion_resisted: '#2ec4a6', intrusion_contested: '#f4d35e', intrusion_cut: '#9aa5c9',
+  recovery: '#ffffff', owner_over_other: '#c08a5b', side_talk: '#7a86c7', open_debate: '#5d6fb0', moderator: '#8892b0',
+};
+
+// Stacked bars: for each person, several rows (opts.rows: [{ label, parts: [{ col, kind }] }]); the width of a part is its count.
+export function drawTypeBars(box, rows, people, opts) {
+  box.replaceChildren();
+  const W = width(box), narrow = W < 560, left = narrow ? 56 : 150, cap = narrow ? 92 : 168, right = 40, rowH = 22, block = opts.rows.length * rowH + 30;
+  const H = rows.length * block + 6;
+  const totals = rows.flatMap(r => opts.rows.map(g => g.parts.reduce((a, p) => a + (r[p.col] || 0), 0)));
+  const scale = (W - left - cap - right) / Math.max(1, ...totals);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': opts.label }, box);
+  rows.forEach((r, i) => {
+    const p = people.find(q => q.key === r.key), y0 = i * block + 8;
+    if (narrow) { avatarSvg(svg, p, 24, y0 + block / 2 - 12, 16, 'types'); nameUnder(svg, p.name, 24, y0 + block / 2 + 14, 9, 9); }
+    else {
+      avatarSvg(svg, p, 24, y0 + block / 2 - 8, 20, 'types');
+      const lines = wrapName(p.name, 15), txt = svgEl('text', { x: 52, y: y0 + block / 2 - 12 - (lines.length - 1) * 7, class: 'axis lbl', 'font-size': 12.5 }, svg);
+      lines.forEach((line, k) => svgEl('tspan', { x: 52, dy: k === 0 ? 0 : 14 }, txt, line));
+    }
+    opts.rows.forEach((g, k) => {
+      const y = y0 + k * rowH;
+      svgEl('text', { x: left + cap - 8, y: y + 14, 'text-anchor': 'end', class: 'axis', 'font-size': narrow ? 9.5 : 11 }, svg, g.label);
+      let x = left + cap;
+      for (const part of g.parts) {
+        const v = r[part.col] || 0;
+        if (!v) continue;
+        const w = v * scale;
+        const rect = svgEl('rect', { x, y, width: Math.max(w - 1.5, 2), height: 17, rx: 3, fill: opts.color(part.kind), class: 'bar' }, svg);
+        if (w > 15) svgEl('text', { x: x + (w - 1.5) / 2, y: y + 13, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#081443' }, svg, v);
+        hover(rect, () => opts.tooltip(r, g, part, v));
+        x += w;
+      }
+      const total = g.parts.reduce((a, q) => a + (r[q.col] || 0), 0);
+      svgEl('text', { x: x + 6, y: y + 13, class: 'value' }, svg, total);
+    });
+  });
+}
+
+// Zones: one row per episode. The coloured band is whose turn it is (strong while answering, pale in the free conversation after
+// the answer); each tick is an overlap, coloured by its type.
+// blocks: [{ episode, lengthSec, topics: [{ start_s, end_s, topic }], slots: [{ key, owner, start_s, floor_end_s, end_s }],
+//            events: [{ seconds, cls, ... }] }]
+export function drawZones(box, blocks, people, opts) {
+  box.replaceChildren();
+  const W = width(box), narrow = W < 520, left = narrow ? 34 : 48, right = 10, rowH = 84, top = 4, H = blocks.length * rowH + top + 30;
+  const maxLen = Math.max(...blocks.map(b => b.lengthSec));
+  const x = s => left + (s / maxLen) * (W - left - right);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': opts.label }, box);
+  blocks.forEach((b, i) => {
+    const y0 = top + i * rowH, by = y0 + 22, bh = 30;
+    svgEl('text', { x: left - 8, y: by + bh / 2 + 4, 'text-anchor': 'end', class: 'axis x' }, svg, narrow ? b.episode : t('ep', { n: b.episode }));
+    b.topics.forEach(tp => {
+      svgEl('line', { x1: x(tp.start_s), x2: x(tp.start_s), y1: y0 + 8, y2: by + bh + 8, stroke: 'rgba(255,255,255,.35)', 'stroke-dasharray': '3 3' }, svg);
+      const room = x(tp.end_s) - x(tp.start_s);
+      if (room > 60) svgEl('text', { x: x(tp.start_s) + 4, y: y0 + 16, class: 'axis', 'font-size': 10.5 }, svg, tp.topic.length * 5.6 > room ? tp.topic.slice(0, Math.floor(room / 5.6) - 1) + '…' : tp.topic);
+    });
+    for (const s of b.slots) {
+      const p = people.find(q => q.key === s.key);
+      const strong = svgEl('rect', { x: x(s.start_s), y: by, width: Math.max(1, x(s.floor_end_s) - x(s.start_s)), height: bh, fill: p.color, opacity: 0.62 }, svg);
+      svgEl('rect', { x: x(s.floor_end_s), y: by, width: Math.max(0, x(s.end_s) - x(s.floor_end_s)), height: bh, fill: p.color, opacity: 0.17 }, svg);
+      svgEl('line', { x1: x(s.start_s), x2: x(s.start_s), y1: by, y2: by + bh, stroke: '#081443', 'stroke-width': 1.5 }, svg);
+      const w = x(s.floor_end_s) - x(s.start_s);
+      if (w > 46) svgEl('text', { x: x(s.start_s) + 4, y: by + bh / 2 + 4, 'font-size': 10.5, 'font-weight': 700, fill: '#081443' }, svg, p.short.length * 6 > w - 6 ? p.short.slice(0, Math.floor((w - 6) / 6)) : p.short);
+      hover(strong, () => opts.slotTooltip(b, s, p));
+    }
+    for (const e of b.events) {
+      if (opts.hide(e)) continue;
+      const tick = svgEl('line', { x1: x(e.seconds), x2: x(e.seconds), y1: by - 6, y2: by + bh + 6, stroke: opts.color(e.cls), 'stroke-width': e.cls === 'moderator' ? 2 : 3.2,
+        opacity: e.cls === 'moderator' || e.cls === 'open_debate' ? 0.75 : 1, class: 'tick' }, svg);
+      hover(tick, () => opts.tooltip(b, e));
+    }
+  });
+  const ay = top + blocks.length * rowH + 4;
+  for (let m = 0; m * 60 <= maxLen; m += 10) {
+    svgEl('text', { x: x(m * 60), y: ay + 14, 'text-anchor': 'middle', class: 'axis' }, svg, `${m}'`);
+  }
+}

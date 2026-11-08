@@ -1,18 +1,18 @@
-﻿topic,owner,start,floor_end,end,floor_s,owner_speech_s,name_check,kind,handoff
-Fernando Alexandre,Pedro Brinca,0:47,5:14,5:14,266,213,ok,main,
-Fernando Alexandre,Maria Castello Branco,5:14,9:34,9:34,260,253,none,main,
-Fernando Alexandre,Luís Aguiar-Conraria,9:34,13:21,13:24,227,208,ok,main,
-Fernando Alexandre,Miguel Santos Carrapatoso,13:24,16:36,16:52,192,186,none,main,
-António José Seguro,Luís Aguiar-Conraria,16:52,19:14,19:15,142,119,ok,main,
-António José Seguro,Miguel Santos Carrapatoso,19:15,23:25,23:25,250,233,ok,main,
-António José Seguro,Pedro Brinca,23:25,30:45,30:54,440,266,none,main,
-António José Seguro,Maria Castello Branco,30:54,35:04,35:23,250,240,ok,main,
-António José Seguro,Miguel Santos Carrapatoso,35:23,36:02,36:21,39,24,none,follow-up,
-António José Seguro,Maria Castello Branco,36:21,36:30,36:31,9,8,none,follow-up,
-António José Seguro,Miguel Santos Carrapatoso,36:31,36:37,36:53,7,6,none,follow-up,
-Hugo Soares,Miguel Santos Carrapatoso,36:54,39:57,39:57,183,159,none,main,
-Hugo Soares,Luís Aguiar-Conraria,39:57,43:16,43:17,199,185,none,main,
-Hugo Soares,Pedro Brinca,43:17,45:35,46:00,138,126,none,main,
-Hugo Soares,Maria Castello Branco,46:00,49:18,49:18,197,179,none,main,
-Hugo Soares,Miguel Santos Carrapatoso,49:18,50:13,50:13,55,49,none,follow-up,
-Hugo Soares,Pedro Brinca,50:13,50:55,52:02,42,38,none,follow-up,
+﻿topic,owner,start,floor_end,end,floor_s,owner_speech_s,name_check,kind,handoff,start_s,floor_end_s,end_s
+Fernando Alexandre,Pedro Brinca,0:47,5:14,5:14,266,213,ok,main,,47.1,313.6,313.6
+Fernando Alexandre,Maria Castello Branco,5:14,9:34,9:34,260,253,none,main,,313.6,574.0,574.0
+Fernando Alexandre,Luís Aguiar-Conraria,9:34,13:21,13:24,227,208,ok,main,,574.0,801.0,803.8
+Fernando Alexandre,Miguel Santos Carrapatoso,13:24,16:36,16:52,192,186,none,main,,803.8,996.1,1012.0
+António José Seguro,Luís Aguiar-Conraria,16:52,19:14,19:15,142,119,ok,main,,1012.4,1154.5,1155.1
+António José Seguro,Miguel Santos Carrapatoso,19:15,23:25,23:25,250,233,ok,main,,1155.1,1404.7,1404.7
+António José Seguro,Pedro Brinca,23:25,30:45,30:54,440,266,none,main,,1404.7,1845.0,1854.2
+António José Seguro,Maria Castello Branco,30:54,35:04,35:23,250,240,ok,main,,1854.2,2103.7,2122.5
+António José Seguro,Miguel Santos Carrapatoso,35:23,36:02,36:21,39,24,none,follow-up,,2122.5,2161.5,2181.0
+António José Seguro,Maria Castello Branco,36:21,36:30,36:31,9,8,none,follow-up,,2181.0,2189.8,2190.7
+António José Seguro,Miguel Santos Carrapatoso,36:31,36:37,36:53,7,6,none,follow-up,,2190.7,2197.3,2213.0
+Hugo Soares,Miguel Santos Carrapatoso,36:54,39:57,39:57,183,159,none,main,,2213.6,2397.0,2397.2
+Hugo Soares,Luís Aguiar-Conraria,39:57,43:16,43:17,199,185,none,main,,2397.2,2596.2,2597.2
+Hugo Soares,Pedro Brinca,43:17,45:35,46:00,138,126,none,main,,2597.2,2735.1,2760.4
+Hugo Soares,Maria Castello Branco,46:00,49:18,49:18,197,179,none,main,,2760.4,2957.9,2957.9
+Hugo Soares,Miguel Santos Carrapatoso,49:18,50:13,50:13,55,49,none,follow-up,,2957.9,3012.8,3013.1
+Hugo Soares,Pedro Brinca,50:13,50:55,52:02,42,38,none,follow-up,,3013.1,3055.1,3122.0

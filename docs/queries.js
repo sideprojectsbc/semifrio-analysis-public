@@ -174,3 +174,24 @@ SELECT p.key, p.name, p.short, ROUND(COALESCE(s.minutes, 0), 1) AS floor_min,
 FROM people p LEFT JOIN slots s ON s.name = p.name
 WHERE NOT p.moderator
 ORDER BY p.ord;`;
+
+// 11. Types of cut per panelist: how the cuts in his own turn ended (rec_*), how the cuts he made ended for the person he cut
+//     (made_*), and what he did in his own turn (recovery, over_other). Counts.
+export const floorTypesSql = f => {
+  const n = (who, cls) => `(SELECT COUNT(*) FROM ev WHERE ${who} = p.name AND class = '${cls}')::INTEGER`;
+  const outcomes = ['takeover', 'resisted', 'contested', 'cut'];
+  return `
+WITH ev AS (SELECT owner, starter, class FROM floor_events WHERE ${epWhere(f)})
+SELECT p.key, p.name, p.short,
+       ${outcomes.map(o => `${n('owner', 'intrusion_' + o)} AS rec_${o}`).join(',\n       ')},
+       ${outcomes.map(o => `${n('starter', 'intrusion_' + o)} AS made_${o}`).join(',\n       ')},
+       ${n('owner', 'recovery')} AS recovery,
+       ${n('owner', 'owner_over_other')} AS over_other
+FROM people p WHERE NOT p.moderator ORDER BY p.ord;`;
+};
+
+// 12. The zones: every turn the moderator gave (floor_slots) and every overlap (floor_events), for the timeline.
+export const zonesSlotsSql = () => `
+SELECT episode, topic, owner, start_s, floor_end_s, end_s FROM floor_slots ORDER BY episode, start_s;`;
+export const zonesEventsSql = () => `
+SELECT episode, seconds, time, topic, owner, starter, overlapped, overlap_s, class, sub, detail FROM floor_events ORDER BY episode, seconds;`;

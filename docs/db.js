@@ -54,7 +54,8 @@ CREATE OR REPLACE TABLE floor_events (
   overlap_s DOUBLE, class VARCHAR, sub VARCHAR, panelist VARCHAR, detail VARCHAR);
 
 CREATE OR REPLACE TABLE floor_slots (
-  episode INTEGER, topic VARCHAR, owner VARCHAR, floor_s DOUBLE, owner_speech_s DOUBLE, kind VARCHAR);
+  episode INTEGER, topic VARCHAR, owner VARCHAR, floor_s DOUBLE, owner_speech_s DOUBLE, kind VARCHAR,
+  start_s DOUBLE, floor_end_s DOUBLE, end_s DOUBLE);
 `);
 }
 
@@ -118,7 +119,8 @@ FROM ${csv(f)};`);
     await db.query(`
 DELETE FROM floor_slots WHERE episode = ${ep};
 INSERT INTO floor_slots
-SELECT ${ep}, topic, owner, TRY_CAST(floor_s AS DOUBLE), TRY_CAST(owner_speech_s AS DOUBLE), kind FROM ${csv(f)};`);
+SELECT ${ep}, topic, owner, TRY_CAST(floor_s AS DOUBLE), TRY_CAST(owner_speech_s AS DOUBLE), kind,
+       TRY_CAST(start_s AS DOUBLE), TRY_CAST(floor_end_s AS DOUBLE), TRY_CAST(end_s AS DOUBLE) FROM ${csv(f)};`);
   }
   return loaded;
 }

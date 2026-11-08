@@ -1,15 +1,15 @@
-﻿topic,owner,start,floor_end,end,floor_s,owner_speech_s,name_check,kind,handoff
-Joaquim Miranda Sarmento,Pedro Brinca,1:02,4:25,4:25,203,176,ok,main,
-Joaquim Miranda Sarmento,Maria Castello Branco,4:25,10:12,10:12,347,297,none,main,
-Joaquim Miranda Sarmento,Miguel Santos Carrapatoso,10:12,12:53,13:01,161,131,none,main,
-Joaquim Miranda Sarmento,Pedro Brinca,13:01,13:33,14:34,32,30,called Maria Castello Branco,follow-up,
-Joaquim Miranda Sarmento,Miguel Santos Carrapatoso,14:34,15:38,15:38,64,49,called Luís Aguiar-Conraria,follow-up,
-Joaquim Miranda Sarmento,Luís Aguiar-Conraria,15:38,21:58,21:58,380,318,none,main,
-António José Seguro,Maria Castello Branco,21:59,26:04,26:06,245,229,ok,main,
-António José Seguro,Luís Aguiar-Conraria,26:06,31:17,31:21,311,248,none,main,
-António José Seguro,Pedro Brinca,31:21,34:35,34:54,194,172,ok,main,
-António José Seguro,Miguel Santos Carrapatoso,34:54,39:07,39:07,253,235,none,main,
-Protestos na Europa,Maria Castello Branco,39:08,42:42,42:42,214,197,none,main,
-Protestos na Europa,Luís Aguiar-Conraria,42:42,45:38,45:41,176,144,ok,main,
-Protestos na Europa,Pedro Brinca,45:41,48:21,48:21,160,131,none,main,
-Protestos na Europa,Miguel Santos Carrapatoso,48:21,50:09,50:10,109,96,none,main,
+﻿topic,owner,start,floor_end,end,floor_s,owner_speech_s,name_check,kind,handoff,start_s,floor_end_s,end_s
+Joaquim Miranda Sarmento,Pedro Brinca,1:02,4:25,4:25,203,176,ok,main,,62.4,265.0,265.0
+Joaquim Miranda Sarmento,Maria Castello Branco,4:25,10:12,10:12,347,297,none,main,,265.0,612.2,612.2
+Joaquim Miranda Sarmento,Miguel Santos Carrapatoso,10:12,12:53,13:01,161,131,none,main,,612.2,773.2,780.8
+Joaquim Miranda Sarmento,Pedro Brinca,13:01,13:33,14:34,32,30,called Maria Castello Branco,follow-up,,780.8,812.6,874.3
+Joaquim Miranda Sarmento,Miguel Santos Carrapatoso,14:34,15:38,15:38,64,49,called Luís Aguiar-Conraria,follow-up,,874.3,937.8,937.8
+Joaquim Miranda Sarmento,Luís Aguiar-Conraria,15:38,21:58,21:58,380,318,none,main,,937.8,1318.0,1318.0
+António José Seguro,Maria Castello Branco,21:59,26:04,26:06,245,229,ok,main,,1318.8,1564.2,1565.9
+António José Seguro,Luís Aguiar-Conraria,26:06,31:17,31:21,311,248,none,main,,1565.9,1877.1,1881.0
+António José Seguro,Pedro Brinca,31:21,34:35,34:54,194,172,ok,main,,1881.0,2075.4,2094.3
+António José Seguro,Miguel Santos Carrapatoso,34:54,39:07,39:07,253,235,none,main,,2094.3,2347.0,2347.0
+Protestos na Europa,Maria Castello Branco,39:08,42:42,42:42,214,197,none,main,,2347.6,2562.0,2562.0
+Protestos na Europa,Luís Aguiar-Conraria,42:42,45:38,45:41,176,144,ok,main,,2562.0,2738.1,2740.5
+Protestos na Europa,Pedro Brinca,45:41,48:21,48:21,160,131,none,main,,2740.5,2900.7,2900.7
+Protestos na Europa,Miguel Santos Carrapatoso,48:21,50:09,50:10,109,96,none,main,,2900.7,3009.4,3010.0
