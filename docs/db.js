@@ -12,6 +12,8 @@
 //   overlap_events  one row per overlap (>= 0.3 s of two people talking at once)                  <- overlaps.csv
 //   talk_time  minutes and turns per person                                                  <- talk_time.csv
 //   topics     optional: which topic runs from start_s to end_s                              <- topics.csv
+//   floor_events  every overlap again, with whose turn it was (the owner) and what kind          <- floor_events.csv
+//   floor_slots   one row per turn the moderator gave a panelist: floor time and speech            <- floor_slots.csv
 
 // The panel, in the order used everywhere (moderator first). `name` is spelled exactly as in the CSV files.
 // photo: file in ui/assets/people/ (null = not supplied yet, the page draws initials instead).
@@ -24,7 +26,7 @@ export const PEOPLE = [
 ];
 
 export const EPISODE_IDS = [1, 2, 3, 4, 5, 6, 7];
-export const FILES = ['episode.json', 'overlaps.csv', 'talk_time.csv', 'topics.csv'];
+export const FILES = ['episode.json', 'overlaps.csv', 'talk_time.csv', 'topics.csv', 'floor_events.csv', 'floor_slots.csv'];
 
 // Write a text value as an SQL string literal: O'Neil -> 'O''Neil'.
 export const sqlString = s => `'${String(s).replace(/'/g, "''")}'`;
@@ -46,6 +48,13 @@ CREATE OR REPLACE TABLE overlap_events (
 CREATE OR REPLACE TABLE talk_time (episode INTEGER, speaker VARCHAR, minutes DOUBLE, turns INTEGER);
 
 CREATE OR REPLACE TABLE topics (episode INTEGER, start_s DOUBLE, end_s DOUBLE, topic VARCHAR);
+
+CREATE OR REPLACE TABLE floor_events (
+  episode INTEGER, seconds DOUBLE, time VARCHAR, topic VARCHAR, owner VARCHAR, starter VARCHAR, overlapped VARCHAR,
+  overlap_s DOUBLE, class VARCHAR, detail VARCHAR);
+
+CREATE OR REPLACE TABLE floor_slots (
+  episode INTEGER, topic VARCHAR, owner VARCHAR, floor_s DOUBLE, owner_speech_s DOUBLE, kind VARCHAR);
 `);
 }
 
@@ -95,6 +104,21 @@ FROM ${csv(f)};`);
     await db.query(`
 DELETE FROM topics WHERE episode = ${ep};
 INSERT INTO topics SELECT ${ep}, TRY_CAST(start_s AS DOUBLE), TRY_CAST(end_s AS DOUBLE), topic FROM ${csv(f)};`);
+  }
+  if (files['floor_events.csv'] !== undefined) {
+    const f = await register('floor_events.csv', files['floor_events.csv']);
+    await db.query(`
+DELETE FROM floor_events WHERE episode = ${ep};
+INSERT INTO floor_events
+SELECT ${ep}, TRY_CAST(seconds AS DOUBLE), time, topic, owner, starter, overlapped, TRY_CAST(overlap_s AS DOUBLE), class, detail
+FROM ${csv(f)};`);
+  }
+  if (files['floor_slots.csv'] !== undefined) {
+    const f = await register('floor_slots.csv', files['floor_slots.csv']);
+    await db.query(`
+DELETE FROM floor_slots WHERE episode = ${ep};
+INSERT INTO floor_slots
+SELECT ${ep}, topic, owner, TRY_CAST(floor_s AS DOUBLE), TRY_CAST(owner_speech_s AS DOUBLE), kind FROM ${csv(f)};`);
   }
   return loaded;
 }

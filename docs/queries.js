@@ -116,3 +116,29 @@ SELECT o.episode, o.seconds, o.time, o.starter, o.overlapped, o.overlap_s, e.aud
 FROM overlap_events o JOIN episodes e USING (episode)
 WHERE o.episode = 2 AND o.seconds BETWEEN 2235 AND 2255
 ORDER BY o.seconds;`;
+
+// 8. The floor layer: who had the word. Per panelist, over the slots the moderator gave (floor_slots) and the overlaps placed
+//    in them (floor_events). received = someone talked over him while it was his turn (took = and he lost the word);
+//    made = he talked over someone else's turn; recovered = he took his own word back. Rates: received per 10 min of his own
+//    floor speech, made per 10 min of the OTHER panelists' floor speech (the time he could have talked over them).
+export const floorSql = f => `
+WITH slots AS (SELECT owner AS name, SUM(owner_speech_s) / 60 AS minutes FROM floor_slots WHERE ${epWhere(f)} GROUP BY 1),
+     total AS (SELECT COALESCE(SUM(minutes), 0) AS m FROM slots),
+     ev AS (SELECT owner, starter, class FROM floor_events WHERE ${epWhere(f)})
+SELECT p.key, p.name, p.short,
+       ROUND(COALESCE(s.minutes, 0), 1)                                                         AS floor_min,
+       ROUND((SELECT m FROM total) - COALESCE(s.minutes, 0), 1)                                 AS others_min,
+       (SELECT COUNT(*) FROM ev WHERE owner = p.name AND class LIKE 'intrusion%')::INTEGER      AS received,
+       (SELECT COUNT(*) FROM ev WHERE owner = p.name AND class = 'intrusion_takeover')::INTEGER AS took,
+       (SELECT COUNT(*) FROM ev WHERE starter = p.name AND class LIKE 'intrusion%')::INTEGER    AS made,
+       (SELECT COUNT(*) FROM ev WHERE owner = p.name AND class = 'recovery')::INTEGER           AS recovered,
+       ROUND((SELECT COUNT(*) FROM ev WHERE owner = p.name AND class LIKE 'intrusion%') / NULLIF(s.minutes, 0) * 10, 1)                       AS received_per_10min,
+       ROUND((SELECT COUNT(*) FROM ev WHERE starter = p.name AND class LIKE 'intrusion%') / NULLIF((SELECT m FROM total) - s.minutes, 0) * 10, 1) AS made_per_10min
+FROM people p LEFT JOIN slots s ON s.name = p.name
+WHERE NOT p.moderator
+ORDER BY p.ord;`;
+
+// 8b. What happens to the 3 in 4 overlaps that are not between panelists: the share of each kind, for the explanation.
+export const floorKindsSql = f => `
+SELECT CASE WHEN class LIKE 'intrusion%' THEN 'intrusion' ELSE class END AS kind, COUNT(*)::INTEGER AS n
+FROM floor_events WHERE ${epWhere(f)} GROUP BY 1 ORDER BY n DESC;`;

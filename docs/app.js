@@ -107,7 +107,7 @@ let renderId = 0;
 async function renderAll() {
   const id = ++renderId, alive = () => id === renderId;
   for (const [name, fn] of [['heat', renderHeat], ['people', renderPeople], ['matrix', renderMatrix],
-    ['evolution', renderEvolution], ['balance', renderBalance], ['timeline', renderTimeline], ['topics', renderTopics], ['events', renderTable],
+    ['evolution', renderEvolution], ['balance', renderBalance], ['floor', renderFloor], ['timeline', renderTimeline], ['topics', renderTopics], ['events', renderTable],
     ['method', renderMethod]]) {
     try { await fn(alive); } catch (err) { console.error(`${name} view:`, err); }
   }
@@ -282,6 +282,54 @@ async function renderBalance(alive) {
   const prev = sx.points.length > 1 ? sx.points[0].cum : 0;
   $('balance-formula').textContent = t('balFormula', { name: sx.person.name, ep: t('ep', { n: pt.episode }), a: pt.started, b: pt.suffered,
     s: signed(pt.balance), first: t('ep', { n: eps[0] }), prev: signed(prev), op: pt.balance < 0 ? '−' : '+', abs: Math.abs(pt.balance), cum: signed(pt.cum) });
+}
+
+// View 4c: who had the floor. The same overlaps as everywhere else, seen from the turn the moderator gave each panelist.
+// Moderator overlaps are not part of it (they are the hand-overs), so the "moderator left out" switch does not apply.
+async function renderFloor(alive) {
+  const f = { episode: state.episode, noMod: true };
+  const [rows, raw, kinds] = await Promise.all([db.query(Q.floorSql(f)), db.query(Q.peopleSql(f)), db.query(Q.floorKindsSql(f))]);
+  if (!alive()) return;
+  if (!rows.some(r => r.floor_min > 0)) {
+    empty($('floor-bars'));
+    $('floor-formula').textContent = '';
+    $('floor-kinds').textContent = '';
+    $('floor-table').replaceChildren();
+    return;
+  }
+  const scope = scopeText();
+  const data = rows.map(r => ({ ...r, raw_started: raw.find(q => q.key === r.key)?.started_per_10min,
+    raw_suffered: raw.find(q => q.key === r.key)?.suffered_per_10min }));
+  drawPeopleBars($('floor-bars'), data, PEOPLE, {
+    uid: 'floor', started: 'made_per_10min', suffered: 'received_per_10min',
+    startedLabel: t('floorMade'), sufferedLabel: t('floorReceived'), colourNote: '', offScaleText: t('offScale'),
+    label: t('floorBarsLabel', { scope }),
+    tooltip: (r, what) => [{ text: t('ttPer10', { v: fmt(what === 'started' ? r.made_per_10min : r.received_per_10min) }), cls: 'tt-value' },
+      { text: what === 'started' ? t('ttFloorMade', { name: r.name, n: r.made }) : t('ttFloorReceived', { name: r.name, n: r.received, lost: r.took }) },
+      { text: t('ttFloorMin', { own: num(r.floor_min), others: num(r.others_min) }) }],
+  });
+  const ex = data.filter(r => r.received).sort((a, b) => b.received - a.received)[0];
+  $('floor-formula').textContent = ex ? t('fFloor', { name: ex.name, n: ex.received, min: num(ex.floor_min), v: num(ex.received_per_10min) }) : '';
+  const n = k => kinds.find(q => q.kind === k)?.n ?? 0, total = kinds.reduce((a, q) => a + q.n, 0);
+  $('floor-kinds').textContent = t('floorKinds', { total, mod: n('moderator'), intrusion: n('intrusion'), recovery: n('recovery'),
+    other: n('owner_over_other') + n('side_talk'), open: n('open_debate') });
+  $('floor-table').replaceChildren(el('h3', {}, null, t('floorTableTitle', { scope })),
+    dataTable([['name', t('colPerson'), '', (td, r) => {
+        const who = el('span', { class: 'who' }, td);
+        const p = byName[r.name];
+        if (p) avatarHtml(who, p, 26);
+        who.appendChild(document.createTextNode(r.name));
+      }],
+      ['floor_min', t('floorColMin'), t('floorColMinTip')],
+      ['received', t('floorColReceived'), t('floorColReceivedTip')],
+      ['took', t('floorColLost'), t('floorColLostTip')],
+      ['received_per_10min', t('floorColReceived10'), t('floorColReceived10Tip')],
+      ['made', t('floorColMade'), t('floorColMadeTip')],
+      ['made_per_10min', t('floorColMade10'), t('floorColMade10Tip')],
+      ['recovered', t('floorColRec'), t('floorColRecTip')],
+      ['raw_started', t('floorColRawS'), t('col10Tip')],
+      ['raw_suffered', t('floorColRawB'), t('col10Tip')]], data,
+      [['', 1], [t('floorGrpTurn'), 1], [t('floorGrpIn'), 3], [t('floorGrpOut'), 2], [t('floorGrpRec'), 1], [t('floorGrpRaw'), 2]]));
 }
 
 // View 5: timeline, one strip per episode.
