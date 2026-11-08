@@ -244,3 +244,24 @@ main { grid-template-columns: minmax(0, 1fr); }
 
 td.conf.mid { color: #ffd479; }
 td.conf.low { color: #ff8a80; font-weight: 700; }
+
+/* "now playing" bar under the zones chart, and the list under the type bars */
+.now-playing { margin-top: 10px; min-height: 40px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: var(--muted); font-size: 13.5px; }
+.now-playing b { color: var(--text); }
+#types-list { margin-top: 12px; }
+#types-list h3 { margin: 8px 0; }
+
+/* ---- Navigation: tabs on the left (a strip on top on narrow screens); one analysis at a time ---- */
+[hidden] { display: none !important; }
+main.wrap.layout { max-width: 1400px; display: grid; grid-template-columns: 224px minmax(0, 1fr); gap: 24px; align-items: start; }
+#panels { display: grid; gap: 22px; min-width: 0; }
+#tabs { position: sticky; top: 62px; display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 14px;
+  background: linear-gradient(180deg, rgba(18, 35, 111, .72), rgba(13, 27, 92, .72)); }
+#tabs button { text-align: left; border: 0; background: transparent; color: var(--muted); padding: 10px 12px; border-radius: 9px; font-size: 14px; }
+#tabs button:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
+#tabs button[aria-pressed="true"] { background: var(--scale); color: #fff; font-weight: 700; }
+@media (max-width: 900px) {
+  main.wrap.layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  #tabs { top: 49px; z-index: 4; display: flex; overflow-x: auto; gap: 6px; padding: 6px; border-radius: 12px; background: rgba(5, 12, 46, .94); }
+  #tabs button { white-space: nowrap; padding: 8px 12px; }
+}

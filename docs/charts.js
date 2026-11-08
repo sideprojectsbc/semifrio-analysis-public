@@ -455,29 +455,38 @@ export const TYPE_COLOR = {
 // Stacked bars: for each person, several rows (opts.rows: [{ label, parts: [{ col, kind }] }]); the width of a part is its count.
 export function drawTypeBars(box, rows, people, opts) {
   box.replaceChildren();
-  const W = width(box), narrow = W < 560, left = narrow ? 56 : 150, cap = narrow ? 92 : 168, right = 40, rowH = 22, block = opts.rows.length * rowH + 30;
+  const W = width(box), narrow = W < 560, right = 40;
+  // wide: portrait + name on the left, row captions in a column, bars to the right.
+  // narrow (phone): the person on one line, then each row as a caption line above its bar.
+  const left = narrow ? 8 : 150, cap = narrow ? 0 : 168, rowH = narrow ? 36 : 22, head = narrow ? 30 : 0, block = head + opts.rows.length * rowH + (narrow ? 12 : 30);
   const H = rows.length * block + 6;
   const totals = rows.flatMap(r => opts.rows.map(g => g.parts.reduce((a, p) => a + (r[p.col] || 0), 0)));
   const scale = (W - left - cap - right) / Math.max(1, ...totals);
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': opts.label }, box);
   rows.forEach((r, i) => {
     const p = people.find(q => q.key === r.key), y0 = i * block + 8;
-    if (narrow) { avatarSvg(svg, p, 24, y0 + block / 2 - 12, 16, 'types'); nameUnder(svg, p.name, 24, y0 + block / 2 + 14, 9, 9); }
-    else {
+    if (narrow) {
+      avatarSvg(svg, p, 22, y0 + 12, 12, 'types');
+      svgEl('text', { x: 42, y: y0 + 17, class: 'axis lbl', 'font-size': 12.5 }, svg, p.name);
+    } else {
       avatarSvg(svg, p, 24, y0 + block / 2 - 8, 20, 'types');
       const lines = wrapName(p.name, 15), txt = svgEl('text', { x: 52, y: y0 + block / 2 - 12 - (lines.length - 1) * 7, class: 'axis lbl', 'font-size': 12.5 }, svg);
       lines.forEach((line, k) => svgEl('tspan', { x: 52, dy: k === 0 ? 0 : 14 }, txt, line));
     }
     opts.rows.forEach((g, k) => {
-      const y = y0 + k * rowH;
-      svgEl('text', { x: left + cap - 8, y: y + 14, 'text-anchor': 'end', class: 'axis', 'font-size': narrow ? 9.5 : 11 }, svg, g.label);
+      const y = y0 + head + k * rowH + (narrow ? 14 : 0);      // y of the bar
+      if (narrow) svgEl('text', { x: left, y: y - 3, class: 'axis', 'font-size': 10.5 }, svg, g.label);
+      else svgEl('text', { x: left + cap - 8, y: y + 14, 'text-anchor': 'end', class: 'axis', 'font-size': 11 }, svg, g.label);
       let x = left + cap;
       for (const part of g.parts) {
         const v = r[part.col] || 0;
         if (!v) continue;
         const w = v * scale;
-        const rect = svgEl('rect', { x, y, width: Math.max(w - 1.5, 2), height: 17, rx: 3, fill: opts.color(part.kind), class: 'bar' }, svg);
-        if (w > 15) svgEl('text', { x: x + (w - 1.5) / 2, y: y + 13, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#081443' }, svg, v);
+        const picked = opts.selected && opts.selected.key === r.key && opts.selected.row === g.id && opts.selected.kind === part.kind;
+        const rect = svgEl('rect', { x, y, width: Math.max(w - 1.5, 2), height: 17, rx: 3, fill: opts.color(part.kind), class: 'bar',
+          stroke: picked ? '#fff' : 'none', 'stroke-width': picked ? 2.5 : 0 }, svg);
+        rect.addEventListener('click', () => opts.onPick(r, g, part, v));
+        if (w > 15) svgEl('text', { x: x + (w - 1.5) / 2, y: y + 13, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#081443', 'pointer-events': 'none' }, svg, v);
         hover(rect, () => opts.tooltip(r, g, part, v));
         x += w;
       }
@@ -519,6 +528,10 @@ export function drawZones(box, blocks, people, opts) {
       const tick = svgEl('line', { x1: x(e.seconds), x2: x(e.seconds), y1: by - 6, y2: by + bh + 6, stroke: opts.color(e.cls), 'stroke-width': e.cls === 'moderator' ? 2 : 3.2,
         opacity: e.cls === 'moderator' || e.cls === 'open_debate' ? 0.75 : 1, class: 'tick' }, svg);
       hover(tick, () => opts.tooltip(b, e));
+      // a wider invisible line over the tick, so it is easy to hit with a finger or a mouse
+      const hit = svgEl('line', { x1: x(e.seconds), x2: x(e.seconds), y1: by - 6, y2: by + bh + 6, stroke: 'transparent', 'stroke-width': 11, class: 'tick' }, svg);
+      hover(hit, () => opts.tooltip(b, e));
+      hit.addEventListener('click', () => opts.onTick(b, e));
     }
   });
   const ay = top + blocks.length * rowH + 4;

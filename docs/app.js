@@ -28,6 +28,8 @@ const state = {
   noMod: true,                   // true (the default) = leave out every overlap the moderator takes part in
   evoMetric: 'started',          // 'started' | 'suffered'
   quadMode: 'episodes',          // quadrant: 'episodes' (each one alone) | 'rolling' (last 3) | 'cumulative'
+  tab: 'overview',               // the analysis shown (see TABS)
+  typePick: null,                // types chart: the segment picked { key, row, kind }
   quadWho: 'all',                // quadrant: 'all' or one person's key (the others are faded)
   loaded: [],                    // episodes that have an overlaps.csv
 };
@@ -108,11 +110,54 @@ async function refreshStatus() {
 let renderId = 0;
 async function renderAll() {
   const id = ++renderId, alive = () => id === renderId;
-  for (const [name, fn] of [['heat', renderHeat], ['people', renderPeople], ['matrix', renderMatrix],
-    ['evolution', renderEvolution], ['balance', renderBalance], ['floor', renderFloor], ['types', renderTypes], ['zones', renderZones], ['quadrant', renderQuadrant], ['moderator', renderModerator], ['timeline', renderTimeline], ['topics', renderTopics], ['events', renderTable],
-    ['method', renderMethod]]) {
+  for (const [name, fn] of VIEWS) {
+    if (TAB_OF[name] !== state.tab) continue;   // hidden cards have no width: they are drawn when their tab opens
     try { await fn(alive); } catch (err) { console.error(`${name} view:`, err); }
   }
+}
+
+// ---- Tabs: one analysis at a time ----------------------------------------------------------------
+// [tab id, text key, [views in it]]. The card of a view carries data-tab in index.html; add a view here AND there.
+const TABS = [
+  ['overview', 'tabOverview', ['heat', 'people']],
+  ['pairs', 'tabPairs', ['matrix', 'evolution', 'balance']],
+  ['floor', 'tabFloor', ['floor', 'types']],
+  ['zones', 'tabZones', ['zones', 'timeline']],
+  ['profile', 'tabProfile', ['quadrant']],
+  ['moderator', 'tabModerator', ['moderator']],
+  ['topics', 'tabTopics', ['topics']],
+  ['listen', 'tabListen', ['events']],
+  ['method', 'tabMethod', ['method']],
+];
+const TAB_OF = Object.fromEntries(TABS.flatMap(([tab, , views]) => views.map(v => [v, tab])));
+const VIEWS = [['heat', renderHeat], ['people', renderPeople], ['matrix', renderMatrix], ['evolution', renderEvolution], ['balance', renderBalance],
+  ['floor', renderFloor], ['types', renderTypes], ['zones', renderZones], ['quadrant', renderQuadrant], ['moderator', renderModerator],
+  ['timeline', renderTimeline], ['topics', renderTopics], ['events', renderTable], ['method', renderMethod]];
+
+function buildTabs() {
+  const nav = $('tabs');
+  nav.replaceChildren();
+  for (const [tab, key] of TABS) {
+    const b = el('button', { type: 'button', 'data-tab': tab, 'data-i18n': key, 'aria-pressed': 'false' }, nav);
+    b.addEventListener('click', () => openTab(tab, true));
+  }
+  applyStatic();
+}
+// Shows one tab (buttons and cards), without drawing.
+function setTab(tab) {
+  if (!TABS.some(([id]) => id === tab)) tab = 'overview';
+  state.tab = tab;
+  for (const b of $('tabs').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.tab === tab));
+  for (const card of document.querySelectorAll('section.card[data-tab]')) card.hidden = card.dataset.tab !== tab;
+  try { history.replaceState(null, '', `#${tab}`); } catch { /* file: pages */ }
+}
+// Opens a tab and draws it; `top` = also scroll to the top of the content.
+async function openTab(tab, top = false) {
+  stopPlaying();
+  hideTooltip();
+  setTab(tab);
+  if (top) window.scrollTo({ top: Math.max(0, $('layout').offsetTop - 56) });
+  await renderAll();
 }
 
 // View 1: KPIs, temperature scale and bars per episode (always all episodes: this is the evolution).
@@ -224,7 +269,7 @@ async function renderMatrix(alive) {
   drawMatrix($('matrix'), rows, shown(), {
     onPick: (a, b) => {
       $('f-starter').value = a; $('f-overlapped').value = b;
-      renderTable(() => true).then(() => $('events-card').scrollIntoView({ behavior: 'smooth' }));
+      openTab('listen').then(() => $('events-card').scrollIntoView({ behavior: 'smooth' }));
     },
   });
 }
@@ -243,7 +288,7 @@ async function renderEvolution(alive) {
       $('f-starter').value = started ? p.name : '';
       $('f-overlapped').value = started ? '' : p.name;
       $('f-min').value = '';
-      renderTable(() => true).then(() => $('events-card').scrollIntoView({ behavior: 'smooth' }));
+      openTab('listen').then(() => $('events-card').scrollIntoView({ behavior: 'smooth' }));
     },
     tooltip: (n, p, e) => [{ text: t('ttTimes', { n }), cls: 'tt-value' }, { text: t('ttGrid', { name: p.name, e, started }) }],
   });
@@ -358,10 +403,39 @@ async function renderTypes(alive) {
   typeLegend($('types-legend'), kinds);
   drawTypeBars($('types'), rows, people, {
     label: t('typesLabel', { scope }), color: k => TYPE_COLOR[k],
-    rows: [{ label: t('typesRowRec'), parts: outcomes('rec') }, { label: t('typesRowMade'), parts: outcomes('made') },
-      { label: t('typesRowOwn'), parts: [{ col: 'recovery', kind: 'recovery' }, { col: 'over_other', kind: 'owner_over_other' }] }],
-    tooltip: (r, g, part, v) => [{ text: t('ttTypes', { name: r.name, row: g.label, type: t(`type_${part.kind}`), n: v }), cls: 'tt-value' }],
+    rows: [{ id: 'rec', label: t('typesRowRec'), parts: outcomes('rec') }, { id: 'made', label: t('typesRowMade'), parts: outcomes('made') },
+      { id: 'own', label: t('typesRowOwn'), parts: [{ col: 'recovery', kind: 'recovery' }, { col: 'over_other', kind: 'owner_over_other' }] }],
+    selected: state.typePick,
+    tooltip: (r, g, part, v) => [{ text: t('ttTypes', { name: r.name, row: g.label, type: t(`type_${part.kind}`), n: v }), cls: 'tt-value' },
+      { text: t('typesClickHint') }],
+    onPick: (r, g, part, v) => {
+      state.typePick = (state.typePick && state.typePick.key === r.key && state.typePick.row === g.id && state.typePick.kind === part.kind)
+        ? null : { key: r.key, row: g.id, kind: part.kind, name: r.name, label: g.label };
+      renderTypes(() => true);
+    },
   });
+  // the moments behind the picked segment, each with a play button
+  const list = $('types-list');
+  list.replaceChildren();
+  const pick = state.typePick;
+  if (!pick) { el('p', { class: 'small' }, list, t('typesPickHint')); return; }
+  const moments = await db.query(Q.floorTypeEventsSql({ episode: state.episode }, pick.name, pick.row, pick.kind));
+  if (!alive()) return;
+  el('h3', {}, list, t('typesListTitle', { name: pick.name, row: pick.label, type: t(`type_${pick.kind}`), n: moments.length }));
+  if (!moments.length) { el('p', { class: 'small' }, list, t('noData')); return; }
+  const wrap = el('div', { class: 'table-wrap', style: 'max-height:none' }, list);
+  const table = el('table', { class: 'data' }, wrap);
+  const head = el('tr', {}, el('thead', {}, table));
+  for (const h of [t('thEp'), t('thTime'), t('thTalksOver'), t('thGets'), t('thHear')]) el('th', {}, head, h);
+  const body = el('tbody', {}, table);
+  for (const r of moments) {
+    const tr = el('tr', {}, body);
+    el('td', {}, tr, t('ep', { n: r.episode }));
+    el('td', {}, tr, r.time);
+    el('td', {}, tr, r.starter);
+    el('td', {}, tr, r.overlapped);
+    playButton(el('td', { class: 'cmd' }, tr), 'play', 'listen', r, t('listenTip', { time: r.time, ep: r.episode }));
+  }
 }
 
 // View 4c3: zones. Each episode as a line: whose turn it is (bands) and every overlap in its place (ticks coloured by type).
@@ -395,8 +469,19 @@ async function renderZones(alive) {
     slotTooltip: (b, s) => [{ text: t('ttZoneTurn', { name: s.owner, ep: t('ep', { n: b.episode }), a: clock(s.start_s), b: clock(s.end_s) }), cls: 'tt-value' },
       { text: t('ttZoneAnswer', { a: clock(s.start_s), b: clock(s.floor_end_s) }) }],
     tooltip: (b, e) => [{ text: t('ttZoneEvent', { ep: t('ep', { n: b.episode }), time: e.time, starter: e.starter, over: e.overlapped }), cls: 'tt-value' },
-      { text: t(`type_${e.cls}`) }, ...(e.detail ? [{ text: e.detail }] : []), { text: t('ttZoneIn', { owner: e.owner || '–' }) }],
+      { text: t(`type_${e.cls}`) }, ...(e.detail ? [{ text: e.detail }] : []), { text: t('ttZoneIn', { owner: e.owner || '–' }) },
+      { text: t('zonesClickHint') }],
+    onTick: (b, e) => {   // click = play it, with a bar that says what is playing
+      const bar = $('zones-player');
+      bar.replaceChildren();
+      const btn = playButton(bar, 'play big', 'listenIt', { episode: b.episode, seconds: e.seconds, audio_file: e.audio_file });
+      const what = el('span', {}, bar);
+      el('b', {}, what, t('ttZoneEvent', { ep: t('ep', { n: b.episode }), time: e.time, starter: e.starter, over: e.overlapped }));
+      what.append(` · ${t(`type_${e.cls}`)}${e.owner ? ' · ' + t('ttZoneIn', { owner: e.owner }) : ''}`);
+      btn.click();   // inside the user's click, so phones allow the sound
+    },
   });
+  if (!$('zones-player').childElementCount) $('zones-player').textContent = t('zonesPickHint');
 }
 
 // View 4d: the quadrant. Cutting others (x) against being cut in own turn (y); the trail is the cumulative position over the episodes.
@@ -512,7 +597,7 @@ async function renderTimeline(alive) {
       onPick: e => {
         $('f-episode').value = String(b.ep);
         $('f-starter').value = ''; $('f-overlapped').value = ''; $('f-min').value = '';
-        renderTable(() => true).then(() => {
+        openTab('listen').then(() => {
           const row = document.getElementById(`ev-${b.ep}-${e.seconds}`);
           (row || $('events-card')).scrollIntoView({ behavior: 'smooth', block: row ? 'center' : 'start' });
           if (row) { row.classList.add('flash'); setTimeout(() => row.classList.remove('flash'), 2500); }
@@ -771,6 +856,9 @@ async function main() {
   }
   $('boot').hidden = true;
   setupControls();
+  buildTabs();
+  setTab(location.hash.slice(1));
+  window.addEventListener('hashchange', () => { if (location.hash.slice(1) !== state.tab) openTab(location.hash.slice(1), true); });
   fillFilterOptions();
   document.body.classList.add('ready');
   await refreshStatus();

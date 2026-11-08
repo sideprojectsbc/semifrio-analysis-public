@@ -194,4 +194,14 @@ FROM people p WHERE NOT p.moderator ORDER BY p.ord;`;
 export const zonesSlotsSql = () => `
 SELECT episode, topic, owner, start_s, floor_end_s, end_s FROM floor_slots ORDER BY episode, start_s;`;
 export const zonesEventsSql = () => `
-SELECT episode, seconds, time, topic, owner, starter, overlapped, overlap_s, class, sub, detail FROM floor_events ORDER BY episode, seconds;`;
+SELECT f.episode, f.seconds, f.time, f.topic, f.owner, f.starter, f.overlapped, f.overlap_s, f.class, f.sub, f.detail, e.audio_file
+FROM floor_events f JOIN episodes e USING (episode) ORDER BY f.episode, f.seconds;`;
+
+// 13. The moments behind one segment of the types chart, to list and hear. row: 'rec' (cut in his own turn), 'made' (he cut someone's
+//     turn), 'own' (what he did in his own turn); kind: the class of floor_events.
+export const floorTypeEventsSql = (f, name, row, kind) => `
+SELECT o.episode, o.seconds, o.time, o.starter, o.overlapped, o.overlap_s, o.detail, e.audio_file
+FROM floor_events o JOIN episodes e USING (episode)
+WHERE ${epWhere(f, 'o.episode')} AND o.class = ${sqlString(kind)} AND ${row === 'made' ? 'o.starter' : 'o.owner'} = ${sqlString(name)}
+ORDER BY o.episode, o.seconds
+LIMIT 100;`;

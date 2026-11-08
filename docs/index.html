@@ -46,11 +46,14 @@
     </div>
   </div>
 
-  <main class="wrap">
+  <main class="wrap layout" id="layout">
+    <!-- the tabs: one analysis at a time (app.js: TABS); built by buildTabs() -->
+    <nav id="tabs" aria-label="Analyses"></nav>
+    <div id="panels">
     <div id="data-warnings"></div>
 
     <!-- 1. How hot is each episode -->
-    <section class="card" id="heat-card">
+    <section class="card" id="heat-card" data-tab="overview">
       <div class="card-head"><div>
         <h2 data-i18n="heatTitle"></h2>
         <p class="note" id="heat-note"></p>
@@ -65,7 +68,7 @@
     </section>
 
     <!-- 2. People -->
-    <section class="card" id="people-card">
+    <section class="card" id="people-card" data-tab="overview">
       <div class="card-head"><div>
         <h2 id="people-title"></h2>
         <p class="note" data-i18n="peopleNote"></p>
@@ -77,7 +80,7 @@
     </section>
 
     <!-- 3. Matrix -->
-    <section class="card" id="matrix-card">
+    <section class="card" id="matrix-card" data-tab="pairs">
       <div class="card-head"><div>
         <h2 data-i18n="matrixTitle"></h2>
         <p class="note" data-i18n="matrixNote"></p>
@@ -87,7 +90,7 @@
     </section>
 
     <!-- 4. Each person, episode by episode -->
-    <section class="card" id="evolution-card">
+    <section class="card" id="evolution-card" data-tab="pairs">
       <div class="card-head"><div>
         <h2 data-i18n="gridTitle"></h2>
         <p class="note" data-i18n="gridNote"></p>
@@ -101,7 +104,7 @@
     </section>
 
     <!-- 4b. Balance -->
-    <section class="card" id="balance-card">
+    <section class="card" id="balance-card" data-tab="pairs">
       <div class="card-head"><div>
         <h2 data-i18n="balTitle"></h2>
         <p class="note" data-i18n="balNote"></p>
@@ -114,7 +117,7 @@
     </section>
 
     <!-- 4c. Who had the floor -->
-    <section class="card" id="floor-card">
+    <section class="card" id="floor-card" data-tab="floor">
       <div class="card-head"><div>
         <h2 data-i18n="floorTitle"></h2>
         <p class="note" data-i18n="floorNote"></p>
@@ -127,17 +130,18 @@
     </section>
 
     <!-- 4c2. Types of cut -->
-    <section class="card" id="types-card">
+    <section class="card" id="types-card" data-tab="floor">
       <div class="card-head"><div>
         <h2 data-i18n="typesTitle"></h2>
         <p class="note" data-i18n="typesNote"></p>
       </div></div>
       <div class="legend" id="types-legend"></div>
       <div id="types"></div>
+      <div id="types-list"></div>
     </section>
 
     <!-- 4c3. Zones -->
-    <section class="card" id="zones-card">
+    <section class="card" id="zones-card" data-tab="zones">
       <div class="card-head"><div>
         <h2 data-i18n="zonesTitle"></h2>
         <p class="note" data-i18n="zonesNote"></p>
@@ -145,10 +149,11 @@
       <div class="legend" id="zones-people"></div>
       <div class="legend" id="zones-legend"></div>
       <div id="zones"></div>
+      <div id="zones-player" class="now-playing"></div>
     </section>
 
     <!-- 4d. Quadrant: cutting and being cut, episode by episode -->
-    <section class="card" id="quadrant-card">
+    <section class="card" id="quadrant-card" data-tab="profile">
       <div class="card-head"><div>
         <h2 data-i18n="quadTitle"></h2>
         <p class="note" data-i18n="quadNote"></p>
@@ -163,7 +168,7 @@
     </section>
 
     <!-- 4e. The moderator -->
-    <section class="card" id="moderator-card">
+    <section class="card" id="moderator-card" data-tab="moderator">
       <div class="card-head"><div>
         <h2 data-i18n="modTitle"></h2>
         <p class="note" data-i18n="modNote"></p>
@@ -175,7 +180,7 @@
     </section>
 
     <!-- 5. Timeline -->
-    <section class="card" id="timeline-card">
+    <section class="card" id="timeline-card" data-tab="zones">
       <div class="card-head"><div>
         <h2 data-i18n="timelineTitle"></h2>
         <p class="note" data-i18n="timelineNote"></p>
@@ -185,7 +190,7 @@
     </section>
 
     <!-- 6. Topics -->
-    <section class="card" id="topics-card">
+    <section class="card" id="topics-card" data-tab="topics">
       <div class="card-head"><div>
         <h2 data-i18n="topicsTitle"></h2>
         <p class="note" data-i18n="topicsNote"></p>
@@ -195,7 +200,7 @@
     </section>
 
     <!-- 7. Event table -->
-    <section class="card" id="events-card">
+    <section class="card" id="events-card" data-tab="listen">
       <div class="card-head"><div>
         <h2 data-i18n="eventsTitle"></h2>
         <p class="note" data-i18n="eventsNote"></p>
@@ -213,7 +218,7 @@
     </section>
 
     <!-- 8. Methodology -->
-    <section class="card" id="method-card">
+    <section class="card" id="method-card" data-tab="method">
       <div class="card-head"><div>
         <h2 data-i18n="methodTitle"></h2>
         <p class="note" data-i18n="methodIntro"></p>
@@ -227,6 +232,7 @@
       <ul class="steps" data-i18n="nextList"></ul>
     </section>
 
+    </div>
   </main>
 
 
