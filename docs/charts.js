@@ -391,3 +391,55 @@ export function drawTopicBars(box, rows, opts) {
     hover(bar, () => opts.tooltip(r));
   });
 }
+
+// ---- Quadrant: cutting others (x) against being cut (y), with each person's path over the episodes -------------------
+// series: [{ person, points: [{ episode, x, y, cx, cy }] }]: x, y = that episode alone; cx, cy = cumulative up to that episode.
+// The trail joins the cumulative positions (the portrait sits on the last one); the faint dots are the single episodes.
+export function drawQuadrant(box, series, opts) {
+  box.replaceChildren();
+  const W = width(box), narrow = W < 520, H = narrow ? 360 : 440, m = { t: 14, r: 18, b: 48, l: narrow ? 40 : 52 };
+  // each axis has its own scale (the two rates are not on the same footing: one is per minute of the others' turns,
+  // the other per minute of own turn), so there is no "equal" diagonal; the cross at the panel average divides the plane.
+  const pts = series.flatMap(s => s.points);
+  const nice = (top, steps) => { const step = top > steps ? 2 : 1; return { M: Math.ceil(Math.max(1, top) / step) * step, step }; };
+  const X = nice(Math.max(...pts.flatMap(q => [q.x, q.cx])), 4), Y = nice(Math.max(...pts.flatMap(q => [q.y, q.cy])), 6);
+  const x = v => m.l + (v / X.M) * (W - m.l - m.r), y = v => H - m.b - (v / Y.M) * (H - m.t - m.b);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': opts.label }, box);
+  for (let v = 0; v <= Y.M; v += Y.step) {
+    svgEl('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: v === 0 ? 'zero' : 'grid' }, svg);
+    svgEl('text', { x: m.l - 6, y: y(v) + 4, 'text-anchor': 'end', class: 'axis' }, svg, num(v));
+  }
+  for (let v = 0; v <= X.M; v += X.step) {
+    svgEl('line', { x1: x(v), x2: x(v), y1: m.t, y2: H - m.b, class: v === 0 ? 'zero' : 'grid' }, svg);
+    svgEl('text', { x: x(v), y: H - m.b + 16, 'text-anchor': 'middle', class: 'axis' }, svg, num(v));
+  }
+  // the panel average of the final positions splits the plane into four
+  const last = series.map(s => s.points[s.points.length - 1]);
+  const mx = last.reduce((a, q) => a + q.cx, 0) / last.length, my = last.reduce((a, q) => a + q.cy, 0) / last.length;
+  svgEl('line', { x1: x(mx), x2: x(mx), y1: m.t, y2: H - m.b, stroke: 'rgba(255,255,255,.35)', 'stroke-dasharray': '5 5' }, svg);
+  svgEl('line', { x1: m.l, x2: W - m.r, y1: y(my), y2: y(my), stroke: 'rgba(255,255,255,.35)', 'stroke-dasharray': '5 5' }, svg);
+  const corner = (cx, cy, anchor, text) => svgEl('text', { x: cx, y: cy, 'text-anchor': anchor, class: 'axis', 'font-size': 11.5, opacity: 0.8 }, svg, text);
+  corner(m.l + 6, m.t + 14, 'start', opts.quad.tl);
+  corner(W - m.r - 6, m.t + 14, 'end', opts.quad.tr);
+  corner(m.l + 6, H - m.b - 8, 'start', opts.quad.bl);
+  corner(W - m.r - 6, H - m.b - 8, 'end', opts.quad.br);
+  svgEl('text', { x: (m.l + W - m.r) / 2, y: H - 8, 'text-anchor': 'middle', class: 'axis' }, svg, opts.xLabel);
+  svgEl('text', { x: 13, y: (m.t + H - m.b) / 2, 'text-anchor': 'middle', class: 'axis', transform: `rotate(-90 13 ${(m.t + H - m.b) / 2})` }, svg, opts.yLabel);
+  for (const s of series) {
+    const p = s.person;
+    for (const q of s.points) {   // each episode alone: faint
+      const d = svgEl('circle', { cx: x(q.x), cy: y(q.y), r: 3.5, fill: p.color, opacity: 0.28, class: 'pt' }, svg);
+      hover(d, () => opts.tooltip(q, p, 'single'));
+    }
+    svgEl('polyline', { points: s.points.map(q => `${x(q.cx)},${y(q.cy)}`).join(' '), fill: 'none', stroke: p.color, 'stroke-width': 2.5,
+      'stroke-linejoin': 'round', opacity: 0.85 }, svg);
+    s.points.slice(0, -1).forEach((q, i) => {
+      const d = svgEl('circle', { cx: x(q.cx), cy: y(q.cy), r: 4.5, fill: p.color, stroke: '#081443', 'stroke-width': 1.5, class: 'pt' }, svg);
+      hover(d, () => opts.tooltip(q, p, 'cumulative'));
+      if (i === 0) svgEl('text', { x: x(q.cx) + 7, y: y(q.cy) - 6, class: 'axis', 'font-size': 10.5 }, svg, t('ep', { n: q.episode }));
+    });
+    const end = s.points[s.points.length - 1];
+    const g = avatarSvg(svg, p, x(end.cx), y(end.cy), narrow ? 12 : 15, 'quad');
+    hover(g, () => opts.tooltip(end, p, 'cumulative'));
+  }
+}

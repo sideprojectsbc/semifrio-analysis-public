@@ -14,7 +14,7 @@ import { arrowToObjects } from './arrow_rows.js';
 import { createSchema, loadEpisode, unknownNames, EPISODE_IDS, FILES, PEOPLE } from './db.js';
 import * as Q from './queries.js';
 import { t, num, initLang, setLang, getLang, applyStatic } from './i18n.js';
-import { drawTempScale, drawEpisodeBars, drawPeopleBars, drawMatrix, drawPersonGrid, drawBalanceBars, drawCumulative, signed, drawTimeline, drawTopicBars,
+import { drawTempScale, drawEpisodeBars, drawPeopleBars, drawMatrix, drawPersonGrid, drawBalanceBars, drawCumulative, drawQuadrant, signed, drawTimeline, drawTopicBars,
   avatarHtml, el, hideTooltip } from './charts.js';
 
 const $ = id => document.getElementById(id);
@@ -107,7 +107,7 @@ let renderId = 0;
 async function renderAll() {
   const id = ++renderId, alive = () => id === renderId;
   for (const [name, fn] of [['heat', renderHeat], ['people', renderPeople], ['matrix', renderMatrix],
-    ['evolution', renderEvolution], ['balance', renderBalance], ['floor', renderFloor], ['timeline', renderTimeline], ['topics', renderTopics], ['events', renderTable],
+    ['evolution', renderEvolution], ['balance', renderBalance], ['floor', renderFloor], ['quadrant', renderQuadrant], ['moderator', renderModerator], ['timeline', renderTimeline], ['topics', renderTopics], ['events', renderTable],
     ['method', renderMethod]]) {
     try { await fn(alive); } catch (err) { console.error(`${name} view:`, err); }
   }
@@ -330,6 +330,68 @@ async function renderFloor(alive) {
       ['raw_started', t('floorColRawS'), t('col10Tip')],
       ['raw_suffered', t('floorColRawB'), t('col10Tip')]], data,
       [['', 1], [t('floorGrpTurn'), 1], [t('floorGrpIn'), 3], [t('floorGrpOut'), 2], [t('floorGrpRec'), 1], [t('floorGrpRaw'), 2]]));
+}
+
+// View 4d: the quadrant. Cutting others (x) against being cut in own turn (y); the trail is the cumulative position over the episodes.
+async function renderQuadrant(alive) {
+  const rows = (await db.query(Q.floorEvolutionSql())).filter(r => state.loaded.includes(r.episode));
+  if (!alive()) return;
+  const people = PEOPLE.filter(p => !p.moderator);
+  const series = people.map(person => {
+    let own = 0, others = 0, rec = 0, made = 0;
+    const points = rows.filter(r => r.key === person.key).map(r => {
+      own += r.own_min; others += r.others_min; rec += r.received; made += r.made;
+      return { episode: r.episode, x: r.others_min ? r.made / r.others_min * 10 : 0, y: r.own_min ? r.received / r.own_min * 10 : 0,
+        cx: others ? made / others * 10 : 0, cy: own ? rec / own * 10 : 0, made: r.made, received: r.received, cmade: made, creceived: rec };
+    });
+    return { person, points };
+  }).filter(s => s.points.length);
+  if (!series.length) { empty($('quadrant')); return; }
+  drawQuadrant($('quadrant'), series, {
+    label: t('quadLabel'), xLabel: t('quadX'), yLabel: t('quadY'), diagonal: t('quadDiag'),
+    quad: { tl: t('quadTL'), tr: t('quadTR'), bl: t('quadBL'), br: t('quadBR') },
+    tooltip: (q, p, which) => which === 'single'
+      ? [{ text: t('ttQuadSingle', { name: p.name, ep: t('ep', { n: q.episode }), made: q.made, rec: q.received }), cls: 'tt-value' },
+        { text: t('ttQuadRates', { x: num(q.x), y: num(q.y) }) }]
+      : [{ text: t('ttQuadCum', { name: p.name, ep: t('ep', { n: q.episode }), made: q.cmade, rec: q.creceived }), cls: 'tt-value' },
+        { text: t('ttQuadRates', { x: num(q.cx), y: num(q.cy) }) }],
+  });
+}
+
+// View 4e: the moderator: overlaps in which she takes part, per panelist, by what happened.
+async function renderModerator(alive) {
+  const rows = await db.query(Q.moderatorSql({ episode: state.episode, noMod: false }));
+  if (!alive()) return;
+  if (!rows.some(r => r.floor_min > 0)) { empty($('moderator-bars')); $('moderator-formula').textContent = ''; $('moderator-table').replaceChildren(); return; }
+  const scope = scopeText();
+  drawPeopleBars($('moderator-bars'), rows, PEOPLE, {
+    uid: 'mod', started: 'cut_in_per_10min', suffered: 'over_per_10min',
+    startedLabel: t('modCut'), sufferedLabel: t('modOver'), colourNote: '', offScaleText: t('offScale'),
+    label: t('modBarsLabel', { scope }),
+    tooltip: (r, what) => [{ text: t('ttPer10', { v: fmt(what === 'started' ? r.cut_in_per_10min : r.over_per_10min) }), cls: 'tt-value' },
+      { text: what === 'started' ? t('ttModCut', { name: r.name, n: r.cut_in, ends: r.ends, paused: r.paused, cont: r.continued })
+        : t('ttModOver', { name: r.name, n: r.over }) },
+      { text: t('ttFloorMin', { own: num(r.floor_min), others: '–' }).split(';')[0] }],
+  });
+  const ex = rows.filter(r => r.cut_in).sort((x, y) => y.cut_in_per_10min - x.cut_in_per_10min)[0];
+  $('moderator-formula').textContent = ex ? t('fMod', { name: ex.name, n: ex.cut_in, min: num(ex.floor_min), v: num(ex.cut_in_per_10min) }) : '';
+  $('moderator-table').replaceChildren(el('h3', {}, null, t('modTableTitle', { scope })),
+    dataTable([['name', t('colPerson'), '', (td, r) => {
+        const who = el('span', { class: 'who' }, td);
+        const p = byName[r.name];
+        if (p) avatarHtml(who, p, 26);
+        who.appendChild(document.createTextNode(r.name));
+      }],
+      ['floor_min', t('floorColMin'), t('floorColMinTip')],
+      ['cut_in', t('modColCut'), t('modColCutTip')],
+      ['ends', t('modColEnds'), t('modColEndsTip')],
+      ['paused', t('modColPaused'), t('modColPausedTip')],
+      ['continued', t('modColCont'), t('modColContTip')],
+      ['cut_in_per_10min', t('modColCut10'), t('modColCut10Tip')],
+      ['handoff', t('modColHand'), t('modColHandTip')],
+      ['over', t('modColOver'), t('modColOverTip')],
+      ['over_per_10min', t('modColOver10'), t('modColOver10Tip')]], rows,
+      [['', 1], [t('floorGrpTurn'), 1], [t('modGrpCut'), 5], [t('modGrpOther'), 3]]));
 }
 
 // View 5: timeline, one strip per episode.

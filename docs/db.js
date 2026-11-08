@@ -51,7 +51,7 @@ CREATE OR REPLACE TABLE topics (episode INTEGER, start_s DOUBLE, end_s DOUBLE, t
 
 CREATE OR REPLACE TABLE floor_events (
   episode INTEGER, seconds DOUBLE, time VARCHAR, topic VARCHAR, owner VARCHAR, starter VARCHAR, overlapped VARCHAR,
-  overlap_s DOUBLE, class VARCHAR, detail VARCHAR);
+  overlap_s DOUBLE, class VARCHAR, sub VARCHAR, panelist VARCHAR, detail VARCHAR);
 
 CREATE OR REPLACE TABLE floor_slots (
   episode INTEGER, topic VARCHAR, owner VARCHAR, floor_s DOUBLE, owner_speech_s DOUBLE, kind VARCHAR);
@@ -110,7 +110,7 @@ INSERT INTO topics SELECT ${ep}, TRY_CAST(start_s AS DOUBLE), TRY_CAST(end_s AS 
     await db.query(`
 DELETE FROM floor_events WHERE episode = ${ep};
 INSERT INTO floor_events
-SELECT ${ep}, TRY_CAST(seconds AS DOUBLE), time, topic, owner, starter, overlapped, TRY_CAST(overlap_s AS DOUBLE), class, detail
+SELECT ${ep}, TRY_CAST(seconds AS DOUBLE), time, topic, owner, starter, overlapped, TRY_CAST(overlap_s AS DOUBLE), class, sub, panelist, detail
 FROM ${csv(f)};`);
   }
   if (files['floor_slots.csv'] !== undefined) {

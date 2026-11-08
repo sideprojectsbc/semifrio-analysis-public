@@ -142,3 +142,35 @@ ORDER BY p.ord;`;
 export const floorKindsSql = f => `
 SELECT CASE WHEN class LIKE 'intrusion%' THEN 'intrusion' ELSE class END AS kind, COUNT(*)::INTEGER AS n
 FROM floor_events WHERE ${epWhere(f)} GROUP BY 1 ORDER BY n DESC;`;
+
+// 9. The floor layer episode by episode, for the quadrant: per person and episode, minutes of own turn and of the others' turns,
+//    cuts received in own turn and cuts made to others.
+export const floorEvolutionSql = () => `
+WITH s AS (SELECT episode, owner AS name, SUM(owner_speech_s) / 60 AS minutes FROM floor_slots GROUP BY 1, 2),
+     t AS (SELECT episode, SUM(minutes) AS m FROM s GROUP BY 1),
+     r AS (SELECT episode, owner AS name, COUNT(*) AS n FROM floor_events WHERE class LIKE 'intrusion%' GROUP BY 1, 2),
+     m AS (SELECT episode, starter AS name, COUNT(*) AS n FROM floor_events WHERE class LIKE 'intrusion%' GROUP BY 1, 2)
+SELECT s.episode, p.key, p.name, s.minutes AS own_min, t.m - s.minutes AS others_min,
+       COALESCE(r.n, 0)::INTEGER AS received, COALESCE(m.n, 0)::INTEGER AS made
+FROM s JOIN t USING (episode) JOIN people p ON p.name = s.name
+LEFT JOIN r ON r.episode = s.episode AND r.name = s.name
+LEFT JOIN m ON m.episode = s.episode AND m.name = s.name
+ORDER BY s.episode, p.ord;`;
+
+// 10. The moderator view: overlaps in which she takes part, per panelist, by what happened (column `sub` of floor_events).
+//     Rates per 10 minutes of the panelist's own turn.
+export const moderatorSql = f => `
+WITH slots AS (SELECT owner AS name, SUM(owner_speech_s) / 60 AS minutes FROM floor_slots WHERE ${epWhere(f)} GROUP BY 1),
+     ev AS (SELECT panelist, sub FROM floor_events WHERE class = 'moderator' AND panelist <> '' AND ${epWhere(f)})
+SELECT p.key, p.name, p.short, ROUND(COALESCE(s.minutes, 0), 1) AS floor_min,
+       (SELECT COUNT(*) FROM ev WHERE panelist = p.name AND sub IN ('ends_answer', 'owner_pauses', 'owner_continues'))::INTEGER AS cut_in,
+       (SELECT COUNT(*) FROM ev WHERE panelist = p.name AND sub = 'ends_answer')::INTEGER     AS ends,
+       (SELECT COUNT(*) FROM ev WHERE panelist = p.name AND sub = 'owner_pauses')::INTEGER    AS paused,
+       (SELECT COUNT(*) FROM ev WHERE panelist = p.name AND sub = 'owner_continues')::INTEGER AS continued,
+       (SELECT COUNT(*) FROM ev WHERE panelist = p.name AND sub = 'handoff')::INTEGER         AS handoff,
+       (SELECT COUNT(*) FROM ev WHERE panelist = p.name AND sub = 'panelist_over_her')::INTEGER AS over,
+       ROUND((SELECT COUNT(*) FROM ev WHERE panelist = p.name AND sub IN ('ends_answer', 'owner_pauses', 'owner_continues')) / NULLIF(s.minutes, 0) * 10, 1) AS cut_in_per_10min,
+       ROUND((SELECT COUNT(*) FROM ev WHERE panelist = p.name AND sub = 'panelist_over_her') / NULLIF(s.minutes, 0) * 10, 1) AS over_per_10min
+FROM people p LEFT JOIN slots s ON s.name = p.name
+WHERE NOT p.moderator
+ORDER BY p.ord;`;
