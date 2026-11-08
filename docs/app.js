@@ -27,6 +27,8 @@ const state = {
   episode: null,                 // null = all episodes combined, or 1..5
   noMod: true,                   // true (the default) = leave out every overlap the moderator takes part in
   evoMetric: 'started',          // 'started' | 'suffered'
+  quadMode: 'episodes',          // quadrant: 'episodes' (each one alone) | 'rolling' (last 3) | 'cumulative'
+  quadWho: 'all',                // quadrant: 'all' or one person's key (the others are faded)
   loaded: [],                    // episodes that have an overlaps.csv
 };
 const filter = () => ({ episode: state.episode, noMod: state.noMod });
@@ -337,24 +339,38 @@ async function renderQuadrant(alive) {
   const rows = (await db.query(Q.floorEvolutionSql())).filter(r => state.loaded.includes(r.episode));
   if (!alive()) return;
   const people = PEOPLE.filter(p => !p.moderator);
+  const sum = list => list.reduce((s, r) => ({ own: s.own + r.own_min, others: s.others + r.others_min, rec: s.rec + r.received, made: s.made + r.made }),
+    { own: 0, others: 0, rec: 0, made: 0 });
+  const at = (s, extra) => ({ x: s.others ? s.made / s.others * 10 : 0, y: s.own ? s.rec / s.own * 10 : 0, made: s.made, rec: s.rec, ...extra });
   const series = people.map(person => {
-    let own = 0, others = 0, rec = 0, made = 0;
-    const points = rows.filter(r => r.key === person.key).map(r => {
-      own += r.own_min; others += r.others_min; rec += r.received; made += r.made;
-      return { episode: r.episode, x: r.others_min ? r.made / r.others_min * 10 : 0, y: r.own_min ? r.received / r.own_min * 10 : 0,
-        cx: others ? made / others * 10 : 0, cy: own ? rec / own * 10 : 0, made: r.made, received: r.received, cmade: made, creceived: rec };
+    const mine = rows.filter(r => r.key === person.key);
+    const points = mine.map((r, i) => {
+      if (state.quadMode === 'rolling') {
+        const win = mine.slice(Math.max(0, i - 2), i + 1);
+        return at(sum(win), { n: r.episode, what: win.length > 1 ? `${t('ep', { n: win[0].episode })}–${win[win.length - 1].episode}` : t('ep', { n: r.episode }) });
+      }
+      if (state.quadMode === 'cumulative') return at(sum(mine.slice(0, i + 1)), { n: r.episode, what: t('quadUpTo', { ep: t('ep', { n: r.episode }) }) });
+      return at(sum([r]), { n: r.episode, what: t('ep', { n: r.episode }) });
     });
-    return { person, points };
+    return { person, points, avg: at(sum(mine), {}) };
   }).filter(s => s.points.length);
-  if (!series.length) { empty($('quadrant')); return; }
+  if (!series.length) { empty($('quadrant')); $('quad-who').replaceChildren(); return; }
+  const who = $('quad-who');   // chips: everyone, or one person at a time (the others fade)
+  who.replaceChildren();
+  for (const [key, person] of [['all', null], ...people.map(p => [p.key, p])]) {
+    const b = el('button', { type: 'button', 'aria-pressed': String(state.quadWho === key) }, who);
+    if (person) avatarHtml(b, person, 20);
+    b.appendChild(document.createTextNode(person ? ` ${person.short}` : t('quadAll')));
+    b.addEventListener('click', () => { state.quadWho = key; renderQuadrant(() => true); });
+  }
   drawQuadrant($('quadrant'), series, {
-    label: t('quadLabel'), xLabel: t('quadX'), yLabel: t('quadY'), diagonal: t('quadDiag'),
+    focus: state.quadWho === 'all' ? null : state.quadWho,
+    label: t('quadLabel'), xLabel: t('quadX'), yLabel: t('quadY'),
     quad: { tl: t('quadTL'), tr: t('quadTR'), bl: t('quadBL'), br: t('quadBR') },
-    tooltip: (q, p, which) => which === 'single'
-      ? [{ text: t('ttQuadSingle', { name: p.name, ep: t('ep', { n: q.episode }), made: q.made, rec: q.received }), cls: 'tt-value' },
-        { text: t('ttQuadRates', { x: num(q.x), y: num(q.y) }) }]
-      : [{ text: t('ttQuadCum', { name: p.name, ep: t('ep', { n: q.episode }), made: q.cmade, rec: q.creceived }), cls: 'tt-value' },
-        { text: t('ttQuadRates', { x: num(q.cx), y: num(q.cy) }) }],
+    tooltip: (q, p) => [{ text: t('ttQuadPoint', { name: p.name, what: q.what, made: q.made, rec: q.rec }), cls: 'tt-value' },
+      { text: t('ttQuadRates', { x: num(q.x), y: num(q.y) }) }],
+    tooltipAvg: (q, p) => [{ text: t('ttQuadAvg', { name: p.name, made: q.made, rec: q.rec }), cls: 'tt-value' },
+      { text: t('ttQuadRates', { x: num(q.x), y: num(q.y) }) }],
   });
 }
 
@@ -651,6 +667,9 @@ function setupControls() {
     b.addEventListener('click', () => { state.evoMetric = b.dataset.metric; setPressed('evo-metric', 'metric', b.dataset.metric); renderEvolution(() => true); });
   }
   for (const id of ['f-episode', 'f-starter', 'f-overlapped', 'f-min', 'f-conf']) $(id).addEventListener('change', () => renderTable(() => true));
+  for (const b of $('quad-mode').querySelectorAll('button')) {
+    b.addEventListener('click', () => { state.quadMode = b.dataset.quad; setPressed('quad-mode', 'quad', b.dataset.quad); renderQuadrant(() => true); });
+  }
   $('f-clear').addEventListener('click', () => {
     for (const id of ['f-episode', 'f-starter', 'f-overlapped', 'f-min', 'f-conf']) $(id).value = '';
     renderTable(() => true);
